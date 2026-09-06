@@ -1,7 +1,7 @@
 ---
 description: Compare 2-5 already analyzed academic papers using their structured research notes. Identify methodological differences, evidence, overlap, contradictions, and research gaps.
 mode: subagent
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 temperature: 0.1
 steps: 12
 permission:

@@ -22,7 +22,7 @@ Coding workflows currently allow selective memory retrieval and prohibit automat
 
 ## Install on another machine
 
-This configuration was inspected with OpenCode **1.18.27** and pins `@opencode-ai/plugin` to **1.18.16**. It also needs Node.js/npm for the locked dependencies and integrations that use `npx`.
+This configuration was inspected with OpenCode **1.18.29** and pins `@opencode-ai/plugin` to **1.18.16**. Use OpenCode 1.18.29 or newer for GPT-6 Astra with ChatGPT/Codex authentication; older versions can filter Astra out of the model list. It also needs Node.js/npm for the locked dependencies and integrations that use `npx`.
 
 1. Install [OpenCode](https://opencode.ai/docs/) and clone this repository:
 
@@ -35,7 +35,7 @@ This configuration was inspected with OpenCode **1.18.27** and pins `@opencode-a
    chmod 600 opencode.json
    ```
 
-2. Customize `opencode.json` and authenticate your model provider with OpenCode. The model IDs in agent and command frontmatter preserve the original setup; replace them with IDs available to your account where necessary. The local worker expects the Ollama model `qwen2.5-coder:7b-16k`, which must be provisioned separately or replaced with a model you have installed.
+2. Customize `opencode.json` and authenticate your model provider with OpenCode. Agents and commands previously using GPT-5.6 Sol now use `openai/gpt-6-astra`, retaining `-fast` for workloads configured for fast mode. Other model assignments are unchanged. Replace model IDs in agent and command frontmatter with IDs available to your account where necessary. The local worker expects the Ollama model `qwen2.5-coder:7b-16k`, which must be provisioned separately or replaced with a model you have installed.
 
 3. Connect this checkout to OpenCode's global configuration location. If `~/.config/opencode` already exists, back it up and reconcile its settings first. The following command only creates the link when the destination is absent, including absent as a dangling symlink:
 
@@ -90,6 +90,6 @@ For example: `/repo-map describe this project's entry points and main interfaces
 
 `opencode.example.json` is the shareable template. The active `opencode.json` and `opencode.jsonc`, secrets, dependencies, runtime state, and backups are ignored by Git. Copy intentional shareable configuration changes into the example after removing credentials and machine-specific values.
 
-The original setup's agents, commands, and tools are preserved without behavioral changes. The example changes credential references and paths and disables unconfigured MCP integrations. Migration validation covers file preservation and configuration discovery; it does not demonstrate successful model requests or end-to-end external service operation.
+Agent prompts, permissions, workflows, and tools are preserved; GPT-5.6 Sol model assignments have been migrated to GPT-6 Astra. The example changes credential references and paths and disables unconfigured MCP integrations. Validation covers configuration discovery and model catalog availability; it does not demonstrate successful model requests or end-to-end external service operation.
 
 See the [OpenCode configuration documentation](https://opencode.ai/docs/config/) for global settings, environment references, and configuration precedence. No license has been selected for this repository.

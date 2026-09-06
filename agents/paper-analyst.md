@@ -1,7 +1,7 @@
 ---
 description: Deep read-only analyst for one academic paper. Extracts methods, experiments, results, limitations, and reusable research evidence from the actual paper.
 mode: subagent
-model: openai/gpt-5.6-sol-fast
+model: openai/gpt-6-astra-fast
 temperature: 0.1
 steps: 24
 permission:

@@ -1,7 +1,7 @@
 ---
 description: Primary coordinator that decomposes complex requests and delegates them to specialized subagents
 mode: primary
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 temperature: 0.1
 
 permission:

@@ -1,7 +1,7 @@
 ---
 description: Generate a thematic literature review from analyzed papers
 agent: orchestrator
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 subtask: false
 ---
 

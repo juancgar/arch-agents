@@ -1,7 +1,7 @@
 ---
 description: Diagnoses software failures, crashes, incorrect behavior, and build problems
 mode: subagent
-model: openai/gpt-5.6-sol-fast
+model: openai/gpt-6-astra-fast
 temperature: 0.05
 
 permission:

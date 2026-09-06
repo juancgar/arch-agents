@@ -1,7 +1,7 @@
 ---
 description: Finds academic papers, evidence, citations, and relevant prior work
 mode: subagent
-model: openai/gpt-5.6-sol-fast
+model: openai/gpt-6-astra-fast
 temperature: 0.15
 
 permission:

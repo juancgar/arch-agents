@@ -1,7 +1,7 @@
 ---
 description: Compare 2-5 analyzed papers and produce a research-gap/novelty matrix
 agent: orchestrator
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 subtask: false
 ---
 

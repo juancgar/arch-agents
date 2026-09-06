@@ -1,7 +1,7 @@
 ---
 description: Converts requirements and research findings into concrete implementation plans
 mode: subagent
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 temperature: 0.1
 
 permission:

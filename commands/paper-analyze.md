@@ -1,7 +1,7 @@
 ---
 description: Deeply analyze one arXiv paper and save a standardized research note
 agent: orchestrator
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 subtask: false
 ---
 

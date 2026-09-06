@@ -1,7 +1,7 @@
 ---
 description: Design evidence-grounded research proposals from analyzed literature, verified gaps, and explicit project constraints.
 mode: subagent
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 temperature: 0.15
 steps: 18
 permission:

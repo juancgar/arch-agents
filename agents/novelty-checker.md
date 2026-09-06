@@ -1,7 +1,7 @@
 ---
 description: Adversarially checks whether a proposed research contribution already exists
 mode: subagent
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 temperature: 0.1
 
 permission:

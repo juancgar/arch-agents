@@ -1,7 +1,7 @@
 ---
 description: Implements approved software changes from plans or clearly defined requirements
 mode: subagent
-model: openai/gpt-5.6-sol-fast
+model: openai/gpt-6-astra-fast
 temperature: 0.1
 
 permission:

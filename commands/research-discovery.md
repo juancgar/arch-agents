@@ -1,7 +1,7 @@
 ---
 description: Multi-source academic discovery, citation expansion, relevance ranking, and paper intake
 agent: researcher
-model: openai/gpt-5.6-sol-fast
+model: openai/gpt-6-astra-fast
 subtask: true
 ---
 

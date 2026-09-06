@@ -1,7 +1,7 @@
 ---
 description: Synthesizes papers and research notes into themes, comparisons, gaps, and conclusions
 mode: subagent
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 temperature: 0.15
 
 permission:

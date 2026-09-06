@@ -1,7 +1,7 @@
 ---
 description: Produce thematic evidence-grounded literature reviews from analyzed paper notes and comparison reports.
 mode: subagent
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 temperature: 0.1
 steps: 16
 permission:

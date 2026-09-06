@@ -1,7 +1,7 @@
 ---
 description: Think-first software architect for major codebase, infrastructure, environment, platform, migration, and system-design decisions
 mode: subagent
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 temperature: 0.1
 permission:
   read: allow

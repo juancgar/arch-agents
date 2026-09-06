@@ -1,7 +1,7 @@
 ---
 description: Independently reviews code changes for correctness, maintainability, safety, and regressions
 mode: subagent
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 temperature: 0.05
 
 permission:
