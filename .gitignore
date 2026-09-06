@@ -1,0 +1,50 @@
+# Dependencies / caches
+node_modules/
+.cache/
+__pycache__/
+
+# Logs
+*.log
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials*
+secrets*
+
+# Temporary / generated files
+tmp/
+temp/
+
+# Our timestamped safety backups
+*.before-*
+*.bak
+*.backup
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Local agent backups
+agents-backup/
+
+# Active machine configuration (publish opencode.example.json instead)
+/opencode.json
+/opencode.jsonc
+/tui.json
+/tui.jsonc
+
+# Local authentication, runtime state, and migration artifacts
+auth.json
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+logs/
+sessions/
+backups/
+arch-agents/

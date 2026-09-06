@@ -1,0 +1,161 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "qwen3:8b": {
+          "name": "Qwen3 8B Local"
+        },
+        "qwen2.5-coder:7b": {
+          "name": "Qwen2.5 Coder 7B Local"
+        },
+        "qwen2.5-coder:7b-16k": {
+          "name": "Qwen2.5 Coder 7B Local 16K",
+          "limit": {
+            "context": 16384,
+            "output": 4096
+          }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@playwright/mcp@latest"
+      ],
+      "enabled": false
+    },
+    "github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "enabled": false,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_TOKEN}",
+        "X-MCP-Toolsets": "context,repos,issues,pull_requests,users",
+        "X-MCP-Readonly": "true"
+      }
+    },
+    "arxiv": {
+      "type": "local",
+      "command": [
+        "arxiv-mcp-server",
+        "--storage-path",
+        "/path/to/research/papers/arxiv"
+      ],
+      "enabled": false
+    },
+    "openreview": {
+      "type": "local",
+      "command": [
+        "openreview-mcp"
+      ],
+      "enabled": false,
+      "timeout": 15000
+    },
+    "zotero": {
+      "type": "local",
+      "command": [
+        "zotero-mcp",
+        "serve"
+      ],
+      "enabled": false,
+      "environment": {
+        "ZOTERO_LOCAL": "true"
+      },
+      "timeout": 20000
+    }
+  },
+  "agent": {
+    "explore": {
+      "model": "openai/gpt-5.4-mini-fast",
+      "steps": 8,
+      "permission": {
+        "lsp": "allow",
+        "ast_grep": "allow",
+        "github_*": "allow",
+        "bash": {
+          "*": "deny",
+          "git status": "allow",
+          "git status *": "allow",
+          "git log": "allow",
+          "git log *": "allow",
+          "git show *": "allow",
+          "git diff": "allow",
+          "git diff *": "allow",
+          "git branch": "allow",
+          "git branch *": "allow",
+          "git remote": "allow",
+          "git remote *": "allow",
+          "git rev-parse *": "allow",
+          "git ls-files": "allow",
+          "git ls-files *": "allow",
+          "git blame *": "allow",
+          "git shortlog *": "allow",
+          "git tag": "allow",
+          "git tag *": "allow"
+        }
+      }
+    },
+    "orchestrator": {
+      "permission": {
+        "lsp": "allow"
+      }
+    },
+    "planner": {
+      "permission": {
+        "lsp": "allow",
+        "ast_grep": "allow"
+      }
+    },
+    "coder": {
+      "permission": {
+        "lsp": "allow",
+        "ast_grep": "allow"
+      }
+    },
+    "debugger": {
+      "permission": {
+        "lsp": "allow",
+        "ast_grep": "allow"
+      }
+    },
+    "tester": {
+      "permission": {
+        "lsp": "allow"
+      }
+    },
+    "reviewer": {
+      "permission": {
+        "lsp": "allow",
+        "ast_grep": "allow"
+      }
+    },
+    "documenter": {
+      "permission": {
+        "lsp": "allow"
+      }
+    },
+    "architect": {
+      "permission": {
+        "lsp": "allow",
+        "ast_grep": "allow"
+      }
+    }
+  },
+  "permission": {
+    "zotero_*": "deny",
+    "lsp": "deny",
+    "ast_grep": "deny"
+  },
+  "lsp": true
+}
