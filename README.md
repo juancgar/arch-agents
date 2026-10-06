@@ -1,6 +1,6 @@
 # arch-agents
 
-An OpenCode configuration for coordinated software engineering and academic research: 18 custom agents, 17 slash commands, and three custom tools.
+An OpenCode configuration for coordinated software engineering and academic research: 18 custom agents, 17 slash commands, and three custom tool modules.
 
 The orchestrator routes requests to specialists, selects workflows according to intent, and separates implementation from verification. Agent permissions and routing instructions live in Markdown, so the architecture can be inspected and customized directly.
 
@@ -15,10 +15,10 @@ The orchestrator routes requests to specialists, selects workflows according to 
 | `paper-analyst`, `paper-comparator`, `literature-reviewer`, `proposal-designer` | Paper analysis, comparisons, literature reviews, and research proposals |
 | `browser-agent` | Browser-based investigation |
 | `local-worker` | Bounded generation using supplied context and a local Ollama model |
-| `memory-manager` | Durable memory curation, subject to workflow permissions |
+| `memory-manager` | Inspects coding-memory candidates and records shadow decisions |
 | Built-in `explore` agent | Read-only repository exploration, with configuration overrides |
 
-Coding workflows currently allow selective memory retrieval and prohibit automatic memory writes. Read the final routing contract and coding-memory write freeze in the orchestrator before changing these policies.
+Coding workflows use selective memory retrieval and a Phase 2A shadow candidate pipeline. Automatic inserts and deletion are paused for all memory collections, including research. Research documents still save normally. Shadow recommendations always have `applied: false` and never enter memory retrieval. See [the shadow pilot guide](docs/memory-shadow-pilot.md).
 
 ## Install on another machine
 
@@ -63,7 +63,7 @@ The example configuration keeps MCP servers disabled until configured. Enable on
 | Integration | Required setup |
 | --- | --- |
 | `tools/ast_grep.ts` | Install the `ast-grep` executable on `PATH`; the tool constrains searches to the current project |
-| `tools/memory.ts` | Supply the compatible memory CLI at `~/.local/bin/memory`, with its service and collections configured; the wrapper defines the expected CLI arguments |
+| `tools/memory.ts` | Supply the Phase 2A memory CLI at `~/.local/bin/memory`, with its service and collections configured; the wrapper requires JSON `propose`, `inspect`, and `decide` operations in addition to Phase 1 search/stats |
 | `tools/local_paper.ts` | Supply `~/AI-Workspace/system/research-tools/pdf_reader.py` and its `.venv/bin/python`, or adjust the wrapper's paths to your installation |
 | Playwright MCP | Node.js/npm, `@playwright/mcp`, and the browsers required by that server |
 | GitHub MCP | Set `GITHUB_TOKEN` in the environment that launches OpenCode; the example references it as `{env:GITHUB_TOKEN}` and requests read-only toolsets |
@@ -90,6 +90,16 @@ For example: `/repo-map describe this project's entry points and main interfaces
 
 `opencode.example.json` is the shareable template. The active `opencode.json` and `opencode.jsonc`, secrets, dependencies, runtime state, and backups are ignored by Git. Copy intentional shareable configuration changes into the example after removing credentials and machine-specific values.
 
-Agent prompts, permissions, workflows, and tools are preserved; GPT-5.6 Sol model assignments have been migrated to GPT-6 Astra. The example changes credential references and paths and disables unconfigured MCP integrations. Validation covers configuration discovery and model catalog availability; it does not demonstrate successful model requests or end-to-end external service operation.
+The example uses the current agent and workflow definitions, including the GPT-6 Astra model assignments and shadow-memory permissions. It uses environment credential references and placeholder paths and disables unconfigured MCP integrations. Configuration discovery does not demonstrate successful model requests. Memory-specific validation and pilot review are described in the guide and checks below.
 
 See the [OpenCode configuration documentation](https://opencode.ai/docs/config/) for global settings, environment references, and configuration precedence. No license has been selected for this repository.
+
+## Development checks
+
+```bash
+npm ci
+npm run typecheck
+npm test
+```
+
+The memory-tool tests use an injected subprocess runner and isolated temporary directories. They cover role enforcement, write guards, argument compatibility, repository provenance, JSON transport, timeouts, and cancellation. `tsx` provides the test loader even on Node builds without native TypeScript support. The separately installed Python memory service has its own unit and adapter tests.

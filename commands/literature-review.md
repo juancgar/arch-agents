@@ -41,13 +41,9 @@ Use a short descriptive filename ending in:
 
 -literature-review.md
 
-8. Send ONLY "Reusable Findings" to `memory-manager`.
-
-Memory:
-- collection: research_memory
-- source: literature-review
-- at most 3 new durable memories
-- search before writing
+8. Keep "Reusable Findings" in the saved review. Automatic research-memory
+   persistence is paused during the Phase 2A shadow pilot. Do not delegate
+   memory writes or create coding-memory candidates for this research.
 
 Finish with:
 - papers included
@@ -55,4 +51,4 @@ Finish with:
 - strongest consensus
 - strongest contradiction
 - highest-confidence research gap
-- memory result
+- that automatic research-memory persistence is paused
