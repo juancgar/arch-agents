@@ -265,6 +265,8 @@ function buildOpencode() {
     model: `llamacpp/${plans.plans[planName].tiers.brain}`,
     small_model: `llamacpp/${plans.plans[planName].tiers.light}`,
     default_agent: "orchestrator",
+    // hide OpenCode's built-in primary agents so sessions always start in the v2 orchestrator
+    agent: { build: { disable: true }, plan: { disable: true } },
     provider: {
       llamacpp: {
         npm: "@ai-sdk/openai-compatible", name: "llama.cpp router (llm-server)",
