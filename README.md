@@ -6,6 +6,8 @@ Each session can run with a different brain:
 - Claude Fable, Opus or Sonnet, through your Claude subscription in **Claude Code**;
 - local open models through the llama.cpp router, free and offline, in **OpenCode** or Claude Code.
 
+**New here? Start with the [quick user guide](docs/USER_GUIDE.md).**
+
 The design follows published evidence; see [docs/architecture-v2.md](docs/architecture-v2.md) and the [literature survey](docs/research/2026-10-literature-survey.md). In short:
 - **Evidence-gated review instead of self-critique.** Models rarely fix their own reasoning without external feedback.
 - **Effort per role instead of chain-of-thought prompting.** Reasoning models already think; extra "think step by step" text costs tokens and can hurt.
