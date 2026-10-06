@@ -18,6 +18,8 @@ models:
     tongyi-research: { name: "Tongyi DeepResearch 30B",    context: 65536, output: 16384, reasoning: true }
 
 # tier → model per plan. `roles` overrides a specific agent.
+# route_samples: extra routing votes taken by plan_route from the brain model (self-consistency); 0 = off.
+#   Worth it for local brains (they mis-route more often); Claude brains route well enough alone.
 plans:
   max:
     harness: claude
@@ -41,11 +43,13 @@ plans:
     description: "Claude Code harness on local models (no subscription usage)"
     tiers: { brain: qwen3.6-35b, heavy: qwen3.6-35b, mid: kat-coder, light: laguna-xs }
     roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs }
+    route_samples: 2
   offline:
     harness: opencode
     description: "OpenCode on local models: free, private, works without internet"
     tiers: { brain: qwen3.6-35b, heavy: qwen3.6-35b, mid: kat-coder, light: laguna-xs }
     roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs }
+    route_samples: 2
 
 default_plan: daily
 
@@ -125,7 +129,7 @@ capabilities:
   ast_grep:
     claude: { tools: [] }
     opencode: { ast_grep: allow }
-  arch_tools:                  # verify_citations, paper_search, local_llm, memory_search
+  arch_tools:                  # verify_citations, paper_search, local_llm, memory_search, plan_route
     claude: { tools: [] }
     opencode: { "arch-tools_*": allow }
   memory_read:

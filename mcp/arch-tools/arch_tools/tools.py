@@ -11,6 +11,7 @@ from typing import Any
 from .config import DEFAULT_CHAT_MODEL, Config
 from .memory import COLLECTIONS, MEMORY_TYPES, STATUSES
 from .net import ToolError
+from .routing import ROUTES, SIGNALS
 
 INSTRUCTIONS = (
     "arch-tools gives deterministic and local helpers to arch-agents. "
@@ -18,7 +19,8 @@ INSTRUCTIONS = (
     "or removed, UNREACHABLE is not a failure. paper_search: search the local paper library first and cite "
     "results by path + start_char/end_char (or page). local_llm: free local model for bulk text work "
     "(summaries, extraction, reformatting), not for final judgments. memory_search: read-only memory lookup; "
-    "repository evidence overrides memory."
+    "repository evidence overrides memory. plan_route: the orchestrator's routing check; call it once per request "
+    "before delegating and follow the plan it returns."
 )
 
 TOOLS: list[dict[str, Any]] = [
@@ -147,6 +149,48 @@ TOOLS: list[dict[str, Any]] = [
     },
 ]
 
+TOOLS.append(
+    {
+        "name": "plan_route",
+        "description": (
+            "Check and complete the orchestrator's routing decision before any delegation. Give the request, your "
+            "draft route and agents, and a true/false answer for every checklist signal. Returns the corrected "
+            "plan: route (hard precedence rules applied), difficulty S/M/L computed from the checklist, the agent "
+            "sequence with required gates (tests before code, review after code, no writers on read-only requests), "
+            "the list of fixes applied, and `final_json`. On local plans it also samples the routing decision a few "
+            "more times and takes a majority vote; `ambiguous: true` means the votes disagreed."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "request": {
+                    "type": "string", "minLength": 1, "maxLength": 8000,
+                    "description": "The user's request, rewritten to be self-contained if it depends on earlier turns.",
+                },
+                "route": {"type": "string", "enum": list(ROUTES), "description": "Your draft route."},
+                "signals": {
+                    "type": "object",
+                    "description": "Checklist: answer every item true or false about the request.",
+                    "properties": {k: {"type": "boolean", "description": q} for k, q in SIGNALS.items()},
+                    "required": list(SIGNALS),
+                    "additionalProperties": False,
+                },
+                "agents": {"type": "array", "items": {"type": "string"}, "description": "Draft agent sequence."},
+                "difficulty": {"type": "string", "enum": ["S", "M", "L"], "description": "Your own estimate (compared, not used)."},
+                "clarify": {"type": ["string", "null"], "description": "The one batched question to ask, or null."},
+                "assumptions": {"type": "array", "items": {"type": "string"}},
+                "explicit_workflow": {
+                    "type": "boolean", "default": False,
+                    "description": "True when the user invoked the workflow by name: the route is kept as given.",
+                },
+            },
+            "required": ["request", "route", "signals"],
+            "additionalProperties": False,
+        },
+        "annotations": {"title": "Plan route", "read_only_hint": True, "open_world_hint": False},
+    }
+)
+
 TOOLS_BY_NAME = {tool["name"]: tool for tool in TOOLS}
 
 
@@ -205,4 +249,8 @@ async def call_tool(name: str, arguments: dict[str, Any] | None, cfg: Config | N
             status=args.get("status"), limit=args.get("limit"), tags=args.get("tags"),
             scope_paths=args.get("scope_paths"), cfg=cfg,
         )
+    if name == "plan_route":
+        from .routing import plan_route
+
+        return await plan_route(args, cfg=cfg)
     raise ToolError(f"unknown tool {name!r}")  # pragma: no cover - validate_arguments already rejects it

@@ -16,6 +16,7 @@
     uv run --script server.py check-text [--offline] [--max N] [--timeout S] < text
     uv run --script server.py index [--rebuild] [--no-embed] [--dirs A:B] [--batch-size N]
     uv run --script server.py search "query" [-k 8] [--path-filter SUBSTR]
+    uv run --script server.py plan-route [--samples N] < draft.json   (same as the plan_route tool)
 
 check-text exit codes: 0 = no NOT_FOUND/TITLE_MISMATCH, 2 = at least one (reasons on stderr), 1 = internal error.
 """
@@ -116,6 +117,25 @@ def cmd_search(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_plan_route(args: argparse.Namespace) -> int:
+    from arch_tools.net import ToolError
+    from arch_tools.tools import call_tool
+
+    try:
+        draft = json.loads(sys.stdin.read())
+        if args.samples is not None:
+            draft["samples"] = args.samples
+        samples = draft.pop("samples", None)
+        if samples is not None:
+            os.environ["ARCH_ROUTE_SAMPLES"] = str(samples)
+        result = asyncio.run(call_tool("plan_route", draft))
+    except (ToolError, json.JSONDecodeError) as exc:
+        _print_json(exc.to_dict() if isinstance(exc, ToolError) else {"error": str(exc)}, pretty=True)
+        return 1
+    _print_json(result, pretty=True)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     from arch_tools import __version__
 
@@ -143,6 +163,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-k", type=int, default=8)
     p.add_argument("--path-filter")
     p.set_defaults(func=cmd_search)
+
+    p = sub.add_parser("plan-route", help="check a routing draft read from stdin as JSON (same as the plan_route tool)")
+    p.add_argument("--samples", type=int, help="self-consistency samples (default: $ARCH_ROUTE_SAMPLES or 0)")
+    p.set_defaults(func=cmd_plan_route)
     return parser
 
 

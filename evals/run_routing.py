@@ -9,6 +9,7 @@
 """
 import argparse
 import json
+import os
 import sys
 import tempfile
 import time
@@ -21,6 +22,30 @@ from archeval.cases import load_routing_cases  # noqa: E402
 from archeval.jsonextract import parse_launcher_stdout  # noqa: E402
 from archeval.procs import run_process  # noqa: E402
 from archeval.routing import score_routing, stub_output  # noqa: E402
+
+
+# ROUTE-ONLY measures the routing decision only. Local brains sometimes ignore "don't delegate" and start real
+# agents (minutes of model swaps), so the eval enforces it with permissions: only plan_route may run.
+OPENCODE_ROUTE_ONLY = {
+    "agent": {"orchestrator": {"permission": {
+        "*": "deny", "read": "deny", "glob": "deny", "grep": "deny", "list": "deny", "lsp": "deny", "bash": "deny",
+        "edit": "deny", "task": "deny", "skill": "deny", "todowrite": "deny", "question": "deny", "webfetch": "deny",
+        "websearch": "deny", "arch-tools_*": "deny", "arch-tools_plan_route": "allow",
+    }}},
+}
+CLAUDE_ROUTE_ONLY = ["--", "--disallowedTools", "Agent,Skill,Read,Glob,Grep,LSP,Bash,Edit,Write,NotebookEdit,WebSearch,"
+                     "WebFetch,TodoWrite,AskUserQuestion"]
+
+
+def launcher_argv_env(launcher: Path, plan: str, prompt: str) -> tuple[list[str], dict[str, str]]:
+    plans = json.loads((REPO_ROOT / "build" / "plans.json").read_text())["plans"]
+    env = dict(os.environ)
+    argv = [str(launcher), plan, "-p", prompt]
+    if plans[plan]["harness"] == "opencode":
+        env["OPENCODE_CONFIG_CONTENT"] = json.dumps(OPENCODE_ROUTE_ONLY)
+    else:
+        argv += CLAUDE_ROUTE_ONLY
+    return argv, env
 
 
 def main() -> int:
@@ -49,12 +74,19 @@ def main() -> int:
             else:
                 with tempfile.TemporaryDirectory() as work:
                     run_process(["git", "init", "-q"], cwd=work, timeout=30)
-                    proc = run_process([str(launcher), args.plan, "-p", prompt], cwd=work, timeout=args.timeout)
+                    argv, env = launcher_argv_env(launcher, args.plan, prompt)
+                    proc = run_process(argv, cwd=work, timeout=args.timeout, env=env)
                     stdout, err, code = proc.stdout, (proc.error or ("timeout" if proc.timed_out else None)), proc.exit_code
             answer = parse_launcher_stdout(stdout).answer_text
             score = score_routing(case, answer)
+            # heuristic: plan_route's final_json is json.dumps of exactly these keys, so a verbatim copy shows the tool ran
+            parsed = score.get("parsed") or {}
+            canon = json.dumps({k: parsed.get(k) for k in ("route", "difficulty", "agents", "clarify", "assumptions")},
+                               ensure_ascii=False)
+            via_tool = list(parsed) == ["route", "difficulty", "agents", "clarify", "assumptions"] and canon in answer
             row = {"id": case["id"], "plan": args.plan, "seconds": round(time.monotonic() - t0, 1), "exit": code,
                    "error": err, "pass": score["pass"], "score": score["score"],
+                   "via_plan_route": via_tool, "tags": case.get("tags", []),
                    "failed_checks": [k for k, v in score["checks"].items() if not v["ok"]],
                    "got": score["normalized"], "raw": answer[-3000:]}
             rows.append(row)
@@ -69,6 +101,11 @@ def main() -> int:
     mean = sum(r["score"] for r in rows) / max(len(rows), 1)
     summary = f"\n{args.plan}: {passed}/{len(rows)} cases fully correct, mean check score {mean:.2f}, results: {out_path}"
     print(summary)
+    for label, sel in (("held-out", lambda r: "holdout" in r["tags"]), ("seen", lambda r: "holdout" not in r["tags"])):
+        sub = [r for r in rows if sel(r)]
+        if sub:
+            print(f"  {label}: {sum(r['pass'] for r in sub)}/{len(sub)} fully correct")
+    print(f"  answers copied from plan_route (heuristic): {sum(r['via_plan_route'] for r in rows)}/{len(rows)}")
     fails = {}
     for r in rows:
         for c in r["failed_checks"]:

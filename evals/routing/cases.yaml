@@ -270,3 +270,72 @@ cases:
     difficulty: L
     must_include: [researcher, coder, tester]
     order: [[researcher, coder]]
+
+  # ---------------------------------------------------------------- held-out (written before the route checker was built;
+  # never used to tune its rules: report them separately to measure generalization)
+  - id: holdout-rotate-api-keys
+    prompt: "Our API keys are stored in plain text in the config table. Move them to hashed storage and update the code that checks them."
+    route: [implement, refactor]
+    difficulty: L
+    must_include: [tester, coder, reviewer]
+    order: [[tester, coder], [coder, reviewer]]
+    tags: [holdout]
+  - id: holdout-why-slow-readonly
+    prompt: "Don't touch anything — I just want to understand why the nightly report job takes 40 minutes."
+    route: [debug, explain]
+    difficulty: [M, L]
+    must_not_include: [coder, tester, planner]
+    tags: [holdout, read-only]
+  - id: holdout-sql-injection-question
+    prompt: "Could the search endpoint in api/search.py be vulnerable to SQL injection?"
+    route: code-review
+    difficulty: [M, S]
+    must_include: [reviewer]
+    must_not_include: [coder, planner]
+    tags: [holdout]
+  - id: holdout-rename-function
+    prompt: "Rename the helper get_usr() to get_user() in utils.py and its two call sites."
+    route: [quick-fix, refactor]
+    difficulty: S
+    must_include: [coder]
+    must_not_include: [architect, planner, debugger]
+    tags: [holdout]
+  - id: holdout-intermittent-upload
+    prompt: "Tiny thing: uploads over 10 MB fail now and then with a 413, can you just bump something?"
+    route: debug
+    difficulty: [M, S]
+    must_include: [debugger]
+    tags: [holdout, trap]
+  - id: holdout-kafka-vs-queue
+    prompt: "Should our order pipeline keep using Postgres as a job queue or move to Kafka? Give me a recommendation, no code yet."
+    route: architecture
+    difficulty: [L, M]
+    must_include: [architect]
+    must_not_include: [coder, planner, tester]
+    tags: [holdout, read-only]
+  - id: holdout-add-pagination
+    prompt: "Add cursor-based pagination to the /orders list endpoint, the mobile app depends on this API."
+    route: implement
+    difficulty: [M, L]
+    must_include: [planner, tester, coder, reviewer]
+    order: [[planner, coder], [coder, reviewer]]
+    tags: [holdout]
+  - id: holdout-drop-legacy-columns
+    prompt: "Delete the legacy_* columns from the customers table and the code that still reads them."
+    route: [implement, refactor]
+    difficulty: L
+    must_include: [tester, coder, reviewer]
+    tags: [holdout]
+  - id: holdout-explain-regex
+    prompt: "What does this regex in validators.py match: ^(?=.*\\d)(?=.*[A-Z]).{8,}$ ?"
+    route: explain
+    difficulty: S
+    must_not_include: [coder, tester, planner, architect]
+    tags: [holdout]
+  - id: holdout-related-work-section
+    prompt: "Find the most relevant recent papers on retrieval-augmented robot task planning so I can write my related-work section."
+    route: research-discovery
+    difficulty: [M, L]
+    must_include: [researcher]
+    must_not_include: [coder, tester]
+    tags: [holdout]

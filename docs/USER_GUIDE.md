@@ -40,6 +40,7 @@ Just describe what you want, in any language. The orchestrator picks the workflo
 - **Say what "done" means** ("all tests pass", "works with the existing login"). It becomes the acceptance criteria.
 - **"Analyze only" / "don't change anything"** is respected strictly: no file gets edited.
 - **If it asks you a question,** it's because your answer changes the plan. It asks once, at the start.
+- **Before starting, it checks its plan** with a small rule checker (right workflow, task size, tests before code, nothing edited on read-only requests). On `offline`/`local` it also asks the local model twice more and takes the majority, which adds about 30 s.
 
 ## 4. Workflows you can call directly
 

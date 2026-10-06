@@ -115,6 +115,14 @@ All prompts are rewritten. They are lean, with no CoT boilerplate. Each has a fi
 
 Ask one batched clarifying question **only** if the answer would change the plan; otherwise write assumptions into the spec. Read-only requests ("analyze only", "don't change") stay hard constraints.
 
+**Routing check (`plan_route`, arch-tools).** The first offline routing eval showed the local brain *knew* the rules but skipped them: a coder on a read-only question, a refactor without tests, an invented agent, OAuth sized M. Rules the model can ignore became code the model must call:
+1. The orchestrator drafts a route and answers a 10-item yes/no checklist about the request (read_only, changes_requested, judge_code, unknown_cause, open_decision, security, data_risk, multi_component, public_interface, new_dependency). Yes/no checklists are more reliable than holistic grades (TICK, [59] in the survey).
+2. **Voting (local plans only, `route_samples: 2` in `plans.yaml`):** two more context-free samples of route and checklist from the brain model, then a majority vote per field; ties keep the orchestrator's draft (self-consistency [5]; disagreement is reported as `ambiguous`, which feeds the clarification gate [155]). It costs about 20–40 s on the local GPU; Claude plans skip it.
+3. **Deterministic corrections:** hard precedence (quick-fix with an unknown cause → debug; a verdict on code → code-review; an open option → architecture-change; a settled decision with changes → implement; read-only → no change route). Difficulty is computed from the checklist (security or stored data under change → L; read-only work counts risk signals; route minimums). The agent sequence comes from the route template, so gates can't be skipped (tests before code, review after code for M/L, planner before coder) and read-only work never gets a writer.
+4. The orchestrator follows the returned plan and may override a fix only with evidence it states to the user.
+
+Source: `mcp/arch-tools/arch_tools/routing.py` (unit tests: `tests/test_routing.py`; they also check that its route and agent names match `src/`).
+
 **Gates** are the checkpoints a workflow must pass before moving on:
 
 | Gate | What must be true | Applied in |
@@ -178,7 +186,7 @@ arch-agents/
 
 ## 11. Evaluation
 
-- **Routing evals (cheap):** ~40 requests mapped to the expected route, difficulty, and forbidden agents.
+- **Routing evals (cheap):** 50 requests mapped to the expected route, difficulty, and required/forbidden agents. Ten are tagged `holdout`: written before `plan_route` was built and never used to tune it, so they measure generalization; the runner reports them separately.
 - **Coding evals:** ~10 small tasks in fixture repos with hidden tests, scored by pass rate, cost and time.
 - **Research evals:** ~8 questions scored by citation validity rate, unsupported-claim rate and coverage.
 - **Usage:** run on the offline plan for free at any time; Claude plans only when you choose (they spend subscription usage). Compare v1-style vs v2 prompts on the same cases before declaring victory.
