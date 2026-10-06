@@ -1,0 +1,152 @@
+# arch-agents v2 — plans, models and capabilities (single source of truth).
+# Agents declare a `tier` and `capabilities`; this file decides which model plays each tier
+# in each plan and how capabilities become tools/permissions in each harness.
+# Machine-specific values (paths, hosts) live in config.local.yaml (see config.example.yaml).
+
+models:
+  claude:
+    fable:  claude-fable-5-1
+    opus:   claude-opus-5-5
+    sonnet: claude-sonnet-5-5
+    haiku:  claude-haiku-4-5
+  local:                      # names served by the llama.cpp router (llm-server)
+    qwen3.6-35b:     { name: "Qwen3.6 35B-A3B (thinking)", context: 65536, output: 16384, reasoning: true }
+    kat-coder:       { name: "KAT-Coder V2.5 35B-A3B",     context: 65536, output: 16384, reasoning: false }
+    laguna-xs:       { name: "Laguna XS 2.1 33B-A3B",      context: 65536, output: 16384, reasoning: false }
+    mirothinker:     { name: "MiroThinker 1.7 mini",       context: 65536, output: 16384, reasoning: true }
+    qwen3-30b:       { name: "Qwen3 30B-A3B 2507",         context: 65536, output: 16384, reasoning: false }
+    tongyi-research: { name: "Tongyi DeepResearch 30B",    context: 65536, output: 16384, reasoning: true }
+
+# tier → model per plan. `roles` overrides a specific agent.
+plans:
+  max:
+    harness: claude
+    description: "Fable 5.1 brain, Opus judgment, Sonnet work, Haiku bounded tasks"
+    tiers: { brain: fable, heavy: opus, mid: sonnet, light: haiku }
+    brain_effort: high
+  daily:
+    harness: claude
+    description: "Opus 5.5 brain and judgment, Sonnet work, Haiku bounded tasks"
+    tiers: { brain: opus, heavy: opus, mid: sonnet, light: haiku }
+    brain_effort: medium
+  saver:
+    harness: claude
+    description: "Sonnet 5.5 everywhere except Opus for architect and reviewer; offload bulk text to local models"
+    tiers: { brain: sonnet, heavy: sonnet, mid: sonnet, light: haiku }
+    roles: { architect: opus, reviewer: opus }
+    brain_effort: medium
+  local:
+    harness: claude
+    experimental: true          # Claude Code against llama.cpp: works, but unsupported by Anthropic
+    description: "Claude Code harness on local models (no subscription usage)"
+    tiers: { brain: qwen3.6-35b, heavy: qwen3.6-35b, mid: kat-coder, light: laguna-xs }
+    roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs }
+  offline:
+    harness: opencode
+    description: "OpenCode on local models: free, private, works without internet"
+    tiers: { brain: qwen3.6-35b, heavy: qwen3.6-35b, mid: kat-coder, light: laguna-xs }
+    roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs }
+
+default_plan: daily
+
+# Capabilities an agent may declare, and what they mean per harness.
+#  claude.tools: tools this capability needs (anything not granted is put in disallowedTools)
+#  opencode: permission entries merged into the agent's `permission` map
+capabilities:
+  read:
+    claude: { tools: [Read, Glob, Grep, LSP] }
+    opencode: { read: allow, glob: allow, grep: allow, list: allow, lsp: allow }
+  edit:
+    claude: { tools: [Edit, Write, NotebookEdit] }
+    opencode: { edit: allow }
+  shell:                       # tests, builds, linters, read-only git; dangerous commands blocked by hooks/patterns
+    claude: { tools: [Bash] }
+    opencode:
+      bash:
+        "*": ask
+        "git status*": allow
+        "git diff*": allow
+        "git log*": allow
+        "git show*": allow
+        "git branch*": allow
+        "git rev-parse*": allow
+        "git ls-files*": allow
+        "git blame*": allow
+        "ls*": allow
+        "pwd": allow
+        "cat *": allow
+        "head *": allow
+        "tail *": allow
+        "wc *": allow
+        "python -m pytest*": allow
+        "pytest*": allow
+        "uv run*": allow
+        "npm test*": allow
+        "npm run *": allow
+        "npx tsc*": allow
+        "cargo test*": allow
+        "cargo build*": allow
+        "go test*": allow
+        "make*": allow
+        "ruff*": allow
+        "mypy*": allow
+        "sudo*": deny
+        "rm -rf*": deny
+        "git push*": deny
+        "git reset --hard*": deny
+  git_read:
+    claude: { tools: [Bash] }
+    opencode:
+      bash:
+        "*": deny
+        "git status*": allow
+        "git diff*": allow
+        "git log*": allow
+        "git show*": allow
+        "git branch*": allow
+        "git rev-parse*": allow
+        "git ls-files*": allow
+        "git blame*": allow
+  web:
+    claude: { tools: [WebSearch, WebFetch] }
+    opencode: { websearch: allow, webfetch: allow }
+  browser:
+    claude: { tools: [] }
+    opencode: { "playwright_*": allow }
+  github_read:
+    claude: { tools: [] }
+    opencode: { "github_*": allow }
+  papers:
+    claude: { tools: [] }
+    opencode: { "arxiv_*": allow, "openreview_*": allow, "local_paper_*": allow }
+  zotero:
+    claude: { tools: [] }
+    opencode: { "zotero_*": allow }
+  ast_grep:
+    claude: { tools: [] }
+    opencode: { ast_grep: allow }
+  arch_tools:                  # verify_citations, paper_search, local_llm, memory_search
+    claude: { tools: [] }
+    opencode: { "arch-tools_*": allow }
+  memory_read:
+    claude: { tools: [] }
+    opencode: { memory_search: allow, memory_stats: allow }
+  memory_shadow_propose:       # Phase 2A pilot (OpenCode only)
+    claude: { tools: [] }
+    opencode: { memory_propose: allow }
+  memory_shadow_decide:
+    claude: { tools: [] }
+    opencode: { memory_inspect: allow, memory_decide: allow }
+  delegate:
+    claude: { tools: [Agent, Skill] }
+    opencode: { task: allow, skill: allow }
+  todo:
+    claude: { tools: [TodoWrite] }
+    opencode: { todowrite: allow }
+  ask_user:
+    claude: { tools: [AskUserQuestion] }
+    opencode: { question: allow }
+
+# Tools Claude Code exposes that we manage through capabilities (everything else, e.g. MCP tools, is left
+# to plugin-level config; MCP access per agent is steered by prompts + permission defaults).
+claude_managed_tools: [Read, Glob, Grep, LSP, Edit, Write, NotebookEdit, Bash, WebSearch, WebFetch, Agent, Skill, TodoWrite, AskUserQuestion]

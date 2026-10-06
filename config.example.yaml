@@ -1,0 +1,23 @@
+# Machine-specific settings for the arch-agents build. Copy to config.local.yaml (gitignored) and edit.
+# Paths may use ~ ; they are expanded at build time.
+
+llm:
+  # llama.cpp router (chat models) and retrieval server (embed / rerank), see `llm-server`
+  chat_base: http://localhost:8080        # Claude Code adds /v1/messages; OpenCode gets <chat_base>/v1
+  retrieval_base: http://localhost:8081
+  api_key_file: ~/.config/llama-server/api-key
+
+paths:
+  research_hub: ~/ResearchHub
+  research_workspace: ~/AI-Workspace/research   # research/notes/papers, research/literature-reviews, ...
+  arxiv_storage: ~/AI-Workspace/research/papers/arxiv
+  memory_cli: ~/.local/bin/memory
+  uv: ~/.local/bin/uv
+
+mcp:
+  # set enabled: false for integrations you haven't installed
+  arxiv:      { enabled: true, command: ["arxiv-mcp-server", "--storage-path", "{arxiv_storage}"] }
+  openreview: { enabled: true, command: ["openreview-mcp"], timeout: 15000 }
+  zotero:     { enabled: true, command: ["zotero-mcp", "serve"], env: { ZOTERO_LOCAL: "true" }, timeout: 20000 }
+  playwright: { enabled: true, command: ["npx", "-y", "@playwright/mcp@latest"] }
+  github:     { enabled: false, url: "https://api.githubcopilot.com/mcp/", token_env: GITHUB_TOKEN }

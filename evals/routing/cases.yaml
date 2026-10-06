@@ -1,0 +1,272 @@
+# Routing cases: the orchestrator is asked with the ROUTE-ONLY: prefix and must return
+# {route, difficulty, agents, clarify, assumptions}. See evals/README.md for field meanings.
+# route/difficulty may list several acceptable values when a request is genuinely ambiguous.
+cases:
+  # ---------------------------------------------------------------- quick fixes
+  - id: typo-readme
+    prompt: "Fix the typo 'recieve' in README.md."
+    route: quick-fix
+    difficulty: S
+    must_include: [coder]
+    must_not_include: [planner, architect, debugger]
+    expect_clarify: false
+  - id: null-check
+    prompt: "Add a null check before calling user.profile.name in src/views/profile.ts around line 42."
+    route: quick-fix
+    difficulty: S
+    must_include: [coder]
+    must_not_include: [planner, architect]
+    expect_clarify: false
+  - id: small-sounding-debug-trap
+    prompt: "Quick fix please: the export button sometimes downloads an empty file, no idea why."
+    route: debug
+    difficulty: [M, S]
+    must_include: [debugger]
+    notes: "Sounds small, but the cause is unknown and intermittent: debug, not quick-fix."
+    tags: [trap]
+
+  # ---------------------------------------------------------------- explain (read-only)
+  - id: explain-decorator
+    prompt: "What does the retry decorator in utils/retry.py do?"
+    route: explain
+    difficulty: [S, M]
+    must_not_include: [coder, tester, planner, architect]
+  - id: explain-dataflow-readonly
+    prompt: "Walk me through how a request flows from the API gateway to the database in this repo. Don't change anything."
+    route: [explain, repo-map]
+    difficulty: [M, L]
+    must_not_include: [coder, tester, planner, documenter]
+    tags: [read-only]
+  - id: explain-japanese
+    prompt: "このファイル (src/auth/session.py) が何をしているか説明してください。変更はしないでください。"
+    route: explain
+    difficulty: [S, M]
+    must_not_include: [coder, tester, planner]
+    tags: [multilingual, read-only]
+
+  # ---------------------------------------------------------------- debug
+  - id: debug-npe-deploy
+    prompt: "The login page crashes with a NullPointerException since yesterday's deploy. Find out why and fix it."
+    route: debug
+    difficulty: [M, L]
+    must_include: [debugger, coder]
+    order: [[debugger, coder]]
+    must_not_include: [architect]
+  - id: debug-flaky-test
+    prompt: "Our CI test test_payment_timeout fails randomly about 1 in 5 runs. Figure out why."
+    route: debug
+    difficulty: [M, L]
+    must_include: [debugger]
+    must_not_include: [architect, planner]
+  - id: debug-spanish
+    prompt: "El endpoint /api/users devuelve 500 desde ayer. ¿Puedes encontrar la causa y arreglarlo?"
+    route: debug
+    difficulty: [M, S]
+    must_include: [debugger, coder]
+    order: [[debugger, coder]]
+    tags: [multilingual]
+
+  # ---------------------------------------------------------------- implement
+  - id: implement-csv-export
+    prompt: "Add CSV export to the reports page."
+    route: implement
+    difficulty: [M, S]
+    must_include: [coder, tester]
+    must_not_include: [architect]
+    expect_clarify: false
+    min_assumptions: 1
+  - id: implement-oauth-linking
+    prompt: "Add Google OAuth login alongside our existing email/password auth, including linking accounts that use the same email."
+    route: implement
+    difficulty: L
+    must_include: [planner, coder, tester, reviewer]
+    order: [[planner, coder], [coder, reviewer]]
+  - id: implement-verbose-flag
+    prompt: "Add a --verbose flag to the CLI in cli.py that turns on debug logging."
+    route: [implement, quick-fix]
+    difficulty: [S, M]
+    must_include: [coder]
+    must_not_include: [architect]
+    expect_clarify: false
+  - id: implement-underspecified-auth
+    prompt: "Add authentication."
+    route: [implement, architecture]
+    difficulty: [M, L]
+    expect_clarify: true
+    notes: "Mechanism (sessions, JWT, OAuth, SSO) changes the whole plan: ask once, early."
+    tags: [clarify]
+  - id: make-it-faster
+    prompt: "Make the app faster."
+    route: [debug, refactor, implement, general-technical, architecture]
+    expect_clarify: true
+    notes: "No target, metric or component: one batched question is the right move."
+    tags: [clarify]
+
+  # ---------------------------------------------------------------- refactor
+  - id: refactor-god-class
+    prompt: "OrderService does billing, emails and inventory. Split it so each concern has its own module, keeping behaviour exactly the same."
+    route: refactor
+    difficulty: [M, L]
+    must_include: [planner, coder, tester]
+    must_not_include: [architect]
+    order: [[planner, coder]]
+  - id: refactor-duplicate-validation
+    prompt: "Remove the duplicated validation logic in the three signup forms."
+    route: [refactor, quick-fix]
+    difficulty: [S, M]
+    must_include: [coder]
+    must_not_include: [architect]
+
+  # ---------------------------------------------------------------- architecture
+  - id: architecture-docker-analyze-only
+    prompt: "Should we move this project's deployment from bare-metal systemd services to Docker containers? Just analyze, don't change anything."
+    route: architecture
+    difficulty: [L, M]
+    must_include: [architect]
+    must_not_include: [coder, planner, tester]
+    tags: [read-only]
+  - id: architecture-database-choice
+    prompt: "We're on SQLite and seeing write contention with ~50 concurrent users. Postgres or something else? Recommend an option."
+    route: architecture
+    difficulty: [M, L]
+    must_include: [architect]
+    must_not_include: [coder, planner]
+  - id: architecture-then-implement
+    prompt: "Evaluate whether we should add Redis caching for the product catalog and, if it's worth it, implement it."
+    route: [architecture, implement]
+    difficulty: L
+    must_include: [architect]
+    order: [[architect, planner], [architect, coder]]
+    tags: [composite]
+  - id: framework-migration
+    prompt: "Migrate the frontend build from Create React App to Vite."
+    route: [architecture, implement]
+    difficulty: [L, M]
+    must_include: [coder]
+    order: [[planner, coder]]
+
+  # ---------------------------------------------------------------- review / verify
+  - id: review-current-changes
+    prompt: "Review my current changes before I commit."
+    route: code-review
+    difficulty: [S, M]
+    must_include: [reviewer]
+    must_not_include: [coder]
+  - id: review-auth-middleware
+    prompt: "Is this auth middleware safe? src/middleware/auth.ts"
+    route: code-review
+    difficulty: [M, S]
+    must_include: [reviewer]
+    must_not_include: [coder]
+  - id: review-and-fix
+    prompt: "Review the payment module and fix anything important you find."
+    route: code-review
+    difficulty: [M, L]
+    must_include: [reviewer, coder]
+    order: [[reviewer, coder]]
+    tags: [composite]
+  - id: readonly-race-question
+    prompt: "Read-only: tell me whether the caching in src/cache.py has race conditions."
+    route: [code-review, explain, debug]
+    must_not_include: [coder, planner, tester]
+    tags: [read-only]
+  - id: verify-tests
+    prompt: "Run the test suite and the type checks and tell me what fails."
+    route: verify
+    difficulty: S
+    must_include: [tester]
+    must_not_include: [coder, planner, architect]
+  - id: verify-browser-signup
+    prompt: "Check whether the signup form still works in the browser on the staging site."
+    route: verify
+    difficulty: [S, M]
+    must_not_include: [coder, planner]
+
+  # ---------------------------------------------------------------- docs / repo map
+  - id: document-readme-setup
+    prompt: "Update the README setup section to match how the project is actually installed now."
+    route: document
+    difficulty: [S, M]
+    must_include: [documenter]
+    must_not_include: [coder]
+  - id: document-api
+    prompt: "Write API documentation for the public endpoints in api/routes/."
+    route: document
+    difficulty: [M, S]
+    must_include: [documenter]
+    must_not_include: [coder]
+  - id: repo-map
+    prompt: "Map this repository — entry points, modules and how they connect — into REPOSITORY_MAP.md."
+    route: repo-map
+    difficulty: [M, L]
+    must_include: [documenter]
+    must_not_include: [coder, planner]
+
+  # ---------------------------------------------------------------- general questions
+  - id: general-process-thread
+    prompt: "What's the difference between a process and a thread?"
+    route: general-technical
+    difficulty: S
+    must_not_include: [coder, planner, architect, explore, tester]
+  - id: general-grpc-rest-trap
+    prompt: "In general, what are the trade-offs between gRPC and REST for large distributed systems?"
+    route: general-technical
+    difficulty: [S, M]
+    must_not_include: [coder, planner, tester]
+    notes: "Sounds architectural, but it's a general knowledge question about no specific system."
+    tags: [trap]
+  - id: general-study-schedule
+    prompt: "Can you suggest a good structure for a weekly study schedule?"
+    route: general
+    difficulty: S
+    must_not_include: [coder, researcher, planner]
+
+  # ---------------------------------------------------------------- research
+  - id: research-discovery-lora-memory
+    prompt: "Find recent papers on parametric memory for LLM agents using LoRA adapters."
+    route: research-discovery
+    difficulty: [M, L]
+    must_include: [researcher]
+    must_not_include: [coder, tester]
+  - id: paper-analyze-amem
+    prompt: "Analyze arXiv:2502.12110 in depth and save a note."
+    route: paper-analyze
+    difficulty: [M, S]
+    must_include: [paper-analyst, documenter]
+    order: [[paper-analyst, documenter]]
+  - id: paper-compare-amem-mem0
+    prompt: "Compare A-MEM (2502.12110) and Mem0 (2504.19413) and tell me the strongest research gap."
+    route: paper-compare
+    difficulty: [M, L]
+    must_include: [paper-comparator]
+    must_not_include: [coder]
+  - id: literature-review-lora-forgetting
+    prompt: "Write a literature review on mitigating catastrophic forgetting with mixtures of LoRA experts, based on the papers I've analyzed."
+    route: literature-review
+    difficulty: [M, L]
+    must_include: [literature-reviewer]
+    must_not_include: [coder]
+  - id: novelty-episodic-lora-robot
+    prompt: "Is my idea new: a robot that stores episodic memories as LoRA adapters and routes between them based on the current task? Check the prior work."
+    route: novelty-check
+    difficulty: [L, M]
+    must_include: [novelty-checker]
+    must_not_include: [coder, planner]
+  - id: proposal-replay-lora
+    prompt: "Draft a master's thesis proposal on replay-backed LoRA caches for continual learning in embodied agents."
+    route: research-proposal
+    difficulty: L
+    must_include: [proposal-designer, novelty-checker]
+    order: [[proposal-designer, novelty-checker]]
+  - id: research-cycle-humanoid-memory
+    prompt: "Do a full investigation of memory architectures for humanoid robots and save a report."
+    route: research-cycle
+    difficulty: L
+    must_include: [researcher, synthesizer, documenter]
+    must_not_include: [coder]
+  - id: full-cycle-episodic-retrieval
+    prompt: "Research episodic retrieval memory for robot policies, then build a minimal prototype with tests."
+    route: full-cycle
+    difficulty: L
+    must_include: [researcher, coder, tester]
+    order: [[researcher, coder]]

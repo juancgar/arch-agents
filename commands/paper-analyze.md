@@ -44,20 +44,12 @@ status: analyzed
 
 7. Preserve the complete structured analysis returned by paper-analyst.
 
-8. After the note is successfully saved, delegate ONLY the
-   "Reusable research facts" section to `memory-manager`.
-
-   Tell memory-manager:
-   - collection: research_memory
-   - source: arxiv:<paper-id>
-   - store only genuinely durable findings
-   - at most 3 memories
-   - search before writing
-
-9. Do not store the entire paper or the entire note in research_memory.
+8. Keep the "Reusable research facts" section in the saved note. Automatic
+   research-memory persistence is paused during the Phase 2A shadow pilot.
+   Do not delegate a memory write or create a coding-memory candidate for it.
 
 Finish by reporting:
 - paper analyzed
 - note path
-- whether any durable memories were stored
+- that automatic research-memory persistence is paused
 - any major evidence that remained incomplete

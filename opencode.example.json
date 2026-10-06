@@ -153,6 +153,11 @@
     }
   },
   "permission": {
+    "memory_remember": "deny",
+    "memory_forget": "deny",
+    "memory_propose": "deny",
+    "memory_inspect": "deny",
+    "memory_decide": "deny",
     "zotero_*": "deny",
     "lsp": "deny",
     "ast_grep": "deny"

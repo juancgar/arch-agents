@@ -1,95 +1,144 @@
-# arch-agents
+# arch-agents v2
 
-An OpenCode configuration for coordinated software engineering and academic research: 18 custom agents, 17 slash commands, and three custom tools.
+A multi-agent system for software engineering and academic research. An orchestrator routes each request to a workflow, delegates to 18 specialist agents, and only reports results that pass **evidence gates**: tests for code, verified citations and claim checks for research.
 
-The orchestrator routes requests to specialists, selects workflows according to intent, and separates implementation from verification. Agent permissions and routing instructions live in Markdown, so the architecture can be inspected and customized directly.
+Each session can run with a different brain:
+- Claude Fable, Opus or Sonnet, through your Claude subscription in **Claude Code**;
+- local open models through the llama.cpp router, free and offline, in **OpenCode** or Claude Code.
 
-## Architecture
+The design follows published evidence; see [docs/architecture-v2.md](docs/architecture-v2.md) and the [literature survey](docs/research/2026-10-literature-survey.md). In short:
+- **Evidence-gated review instead of self-critique.** Models rarely fix their own reasoning without external feedback.
+- **Effort per role instead of chain-of-thought prompting.** Reasoning models already think; extra "think step by step" text costs tokens and can hurt.
+- **One writer, tests written before the fix, a reviewer with a fresh context.**
+- **Claim-level grounding for research,** and novelty answered with a closest-prior-work table rather than a verdict.
 
-| Component | Responsibility |
-| --- | --- |
-| `agents/orchestrator.md` | Primary coordinator, workflow routing, model selection, and selective memory retrieval |
-| `architect`, `planner` | Architecture decisions and implementation planning |
-| `coder`, `debugger`, `tester`, `reviewer`, `documenter` | Implementation, diagnosis, verification, review, and documentation |
-| `researcher`, `synthesizer`, `novelty-checker` | Literature discovery, synthesis, and adversarial evaluation of novelty |
-| `paper-analyst`, `paper-comparator`, `literature-reviewer`, `proposal-designer` | Paper analysis, comparisons, literature reviews, and research proposals |
-| `browser-agent` | Browser-based investigation |
-| `local-worker` | Bounded generation using supplied context and a local Ollama model |
-| `memory-manager` | Durable memory curation, subject to workflow permissions |
-| Built-in `explore` agent | Read-only repository exploration, with configuration overrides |
+## Plans
 
-Coding workflows currently allow selective memory retrieval and prohibit automatic memory writes. Read the final routing contract and coding-memory write freeze in the orchestrator before changing these policies.
+| Plan | Harness | Brain | Judgment | Work | Bounded tasks |
+|---|---|---|---|---|---|
+| `max` | Claude Code | Fable 5.1 | Opus 5.5 | Sonnet 5.5 | Haiku 4.5 |
+| `daily` *(default)* | Claude Code | Opus 5.5 | Opus 5.5 | Sonnet 5.5 | Haiku 4.5 |
+| `saver` | Claude Code | Sonnet 5.5 | Sonnet 5.5 (Opus for architect and reviewer) | Sonnet 5.5 | Haiku 4.5 |
+| `local` *(experimental)* | Claude Code → llama.cpp | Qwen3.6-35B | Qwen3.6-35B | KAT-Coder / MiroThinker | Laguna-XS |
+| `offline` | OpenCode → llama.cpp | Qwen3.6-35B | Qwen3.6-35B | KAT-Coder / MiroThinker | Laguna-XS |
+
+- **Subscription:** Claude plans use your Claude subscription, which only covers Anthropic's own apps such as Claude Code.
+- **Local models:** the `local` and `offline` plans need the local model server (`llm-server`, see below). The `local` plan works but isn't supported by Anthropic.
+
+## Usage
+
+```bash
+aa                        # interactive session, default plan (daily), current directory
+aa max ~/code/project   # a plan and a project directory
+aa offline              # fully local, no internet needed
+aa daily -p "explain how the cache layer works"   # one-shot, prints the answer
+aa plans                # list plans
+aa build                # rebuild after editing src/
+```
+
+**Talking to it:** just describe what you want. The orchestrator classifies the request into a route and a difficulty (S/M/L) and runs the matching workflow. Workflows can also be invoked directly:
+- Claude Code: `/arch:implement …`, `/arch:debug …`, `/arch:research-cycle …`
+- OpenCode: `/implement …`, `/debug …`, `/research-cycle …`
+
+| Coding | Research |
+|---|---|
+| quick-fix · explain · debug · implement (`--hard` for sample-and-select) · refactor · architecture-change · code-review · verify · document · repo-map | research-discovery · paper-analyze · paper-compare · literature-review · novelty-check · research-proposal · research-cycle · full-cycle |
+
+## How a task flows
+
+1. **Intake:**
+   - route × difficulty (S/M/L);
+   - one batched clarifying question, asked only if the answer changes the plan; otherwise assumptions are written down;
+   - a spec with checkable acceptance criteria (M/L).
+2. **Workflow** with gates, for M/L tasks (S tasks take a fast path):
+   - **G2:** the tester writes a failing reproduction test **from the spec, without seeing the fix**;
+   - **G3:** the coder, the only writer, makes the change; then tests, lint and types must pass;
+   - **G4:** a reviewer with a fresh context grades a spec checklist, and every finding must cite evidence;
+   - **G5 (research):** citations are verified to exist, and each claim is checked against the passage it cites;
+   - **G6:** after 3 failed fix attempts, stop, summarize, and restart fresh.
+3. **Answer:** the result, what was verified (and what wasn't), confidence, open issues, and paths of saved files.
+
+In Claude Code, **hooks** enforce part of this without relying on the model:
+- `sudo`, recursive deletes, `git push` and writes outside the project or research folders are blocked;
+- the coder, tester and debugger must report the commands they ran;
+- research agents can't finish with citations that don't exist;
+- the final answer can't claim a saved file that doesn't exist.
+
+## Local models (`llm-server`)
+
+A systemd user service runs the llama.cpp **router**. Requests name a model and it loads on demand, one at a time on the 8 GB GPU (MoE experts spill to RAM). A model unloads after 10 idle minutes.
+
+| Endpoint | Models |
+|---|---|
+| `http://omen:8080` | qwen3.6-35b · kat-coder · laguna-xs · mirothinker · qwen3-30b · tongyi-research |
+| `http://omen:8081` (CPU) | embed · rerank |
+
+Config: `~/.config/llama-server/{chat-models.ini,embed-models.ini,api-key}`; models live in `~/Storage/AI-Workspace/models/gguf`.
+
+## Shared tools: `mcp/arch-tools`
+
+An MCP server used by both harnesses:
+
+| Tool | What it does |
+|---|---|
+| `verify_citations` | checks arXiv IDs, DOIs and URLs exist and that titles match |
+| `paper_search` | hybrid BM25 + embedding + reranker search over ResearchHub and the paper library |
+| `local_llm` | free bulk text work on the local models |
+| `memory_search` | read-only memory retrieval |
+
+See [mcp/arch-tools/README.md](mcp/arch-tools/README.md). Rebuild the paper index with:
+
+```bash
+uv run --script mcp/arch-tools/server.py index
+```
+
+Other MCP servers (arXiv, OpenReview, Zotero, Playwright, GitHub) are configured in `config.local.yaml`.
+
+## Repository layout
+
+```
+src/agents/*.md       the 19 agents: tier, effort, capabilities and prompt (single source of truth)
+src/workflows/*.md    the 18 workflows (Claude skills / OpenCode commands)
+src/shared/*.md       shared prompt blocks (evidence rules, report format, research locations)
+src/plans.yaml        plans → models, capabilities → tools per harness
+config.local.yaml     machine-specific paths and hosts (copy from config.example.yaml)
+scripts/build.ts      generates build/claude/<plan>/ plugins, build/opencode/, build/plans.json
+hooks/                Claude Code hook scripts (deterministic gates)
+mcp/arch-tools/       shared MCP tool server
+tools/ lib/           OpenCode custom tools + the Phase 2A memory library
+evals/                routing / coding / research evaluation suites
+bin/arch              launcher
+```
+
+Never edit `build/`; edit `src/` and run `aa build` (`npm run build`).
 
 ## Install on another machine
 
-This configuration was inspected with OpenCode **1.18.29** and pins `@opencode-ai/plugin` to **1.18.16**. Use OpenCode 1.18.29 or newer for GPT-6 Astra with ChatGPT/Codex authentication; older versions can filter Astra out of the model list. It also needs Node.js/npm for the locked dependencies and integrations that use `npx`.
-
-1. Install [OpenCode](https://opencode.ai/docs/) and clone this repository:
-
+1. Install [Claude Code](https://code.claude.com) (`npm install -g @anthropic-ai/claude-code`, then `claude` to log in), [OpenCode](https://opencode.ai/docs/), Node.js and [uv](https://docs.astral.sh/uv/).
+2. Clone and build:
    ```bash
-   mkdir -p ~/workspace/me
-   git clone https://github.com/juancgar/arch-agents.git ~/workspace/me/arch-agents
-   cd ~/workspace/me/arch-agents
+   git clone https://github.com/juancgar/arch-agents.git && cd arch-agents
    npm ci
-   cp -n opencode.example.json opencode.json
-   chmod 600 opencode.json
+   cp config.example.yaml config.local.yaml   # edit paths and hosts
+   npm run build
+   ln -s "$PWD/bin/arch" ~/.local/bin/aa   # short alias; `arch` itself is a coreutils command
    ```
+3. For the local plans, set up llama.cpp and the `llm-server` service (see above), and download the models.
+4. To make v2 your global OpenCode config, point `~/.config/opencode` at `build/opencode`.
 
-2. Customize `opencode.json` and authenticate your model provider with OpenCode. Agents and commands previously using GPT-5.6 Sol now use `openai/gpt-6-astra`, retaining `-fast` for workloads configured for fast mode. Other model assignments are unchanged. Replace model IDs in agent and command frontmatter with IDs available to your account where necessary. The local worker expects the Ollama model `qwen2.5-coder:7b-16k`, which must be provisioned separately or replaced with a model you have installed.
+## Memory (Phase 2A shadow pilot)
 
-3. Connect this checkout to OpenCode's global configuration location. If `~/.config/opencode` already exists, back it up and reconcile its settings first. The following command only creates the link when the destination is absent, including absent as a dangling symlink:
+The pilot continues **unchanged in OpenCode**: coding tasks propose zero or one candidate, and `memory-manager` records shadow decisions with `applied=false`. In Claude Code, memory is read-only (`memory_search`). See [docs/memory-shadow-pilot.md](docs/memory-shadow-pilot.md).
 
-   ```bash
-   mkdir -p ~/.config
-   if [ ! -e ~/.config/opencode ] && [ ! -L ~/.config/opencode ]; then
-     ln -s ~/workspace/me/arch-agents ~/.config/opencode
-   else
-     echo 'Existing OpenCode configuration found; back it up and reconcile it first.'
-   fi
-   ```
+## Development
 
-4. Configure the optional integrations below, then check discovery:
+```bash
+npm run check        # validate sources (frontmatter, references, templates)
+npm run build        # generate plugins and configs
+npm test             # Phase 2A memory-tool tests
+npm run test:hooks   # hook tests
+npm run typecheck
+uv run --script evals/run.py --plan offline --suite routing     # free eval run (see evals/README.md)
+```
 
-   ```bash
-   opencode agent list
-   ```
-
-   Start OpenCode in the project you want to work on and select the `orchestrator` agent. The global symbolic link makes edits in this checkout available to OpenCode across projects; project configuration can still override global settings.
-
-## Integrations and external dependencies
-
-The example configuration keeps MCP servers disabled until configured. Enable only the integrations you have installed and authenticated. No external helper programs, provider credentials, research collections, or memory databases are included in this repository.
-
-| Integration | Required setup |
-| --- | --- |
-| `tools/ast_grep.ts` | Install the `ast-grep` executable on `PATH`; the tool constrains searches to the current project |
-| `tools/memory.ts` | Supply the compatible memory CLI at `~/.local/bin/memory`, with its service and collections configured; the wrapper defines the expected CLI arguments |
-| `tools/local_paper.ts` | Supply `~/AI-Workspace/system/research-tools/pdf_reader.py` and its `.venv/bin/python`, or adjust the wrapper's paths to your installation |
-| Playwright MCP | Node.js/npm, `@playwright/mcp`, and the browsers required by that server |
-| GitHub MCP | Set `GITHUB_TOKEN` in the environment that launches OpenCode; the example references it as `{env:GITHUB_TOKEN}` and requests read-only toolsets |
-| arXiv MCP | Install `arxiv-mcp-server` on `PATH` and replace the example storage directory |
-| OpenReview MCP | Install `openreview-mcp` on `PATH` and configure its prerequisites |
-| Zotero MCP | Install `zotero-mcp` on `PATH` and configure the local Zotero service |
-| Ollama | A local server at `http://localhost:11434/v1` and the selected local model |
-
-The custom tools execute inside OpenCode's Bun runtime. MCP services and local helper programs remain separate dependencies. Workflows that call missing tools require those dependencies or corresponding changes to agent permissions and routing.
-
-## Commands
-
-Use these slash commands inside OpenCode with your task as the argument:
-
-| Workflow | Commands |
-| --- | --- |
-| Software engineering | `/quick-fix`, `/implement`, `/debug`, `/refactor`, `/architecture-change`, `/code-review`, `/explain`, `/document`, `/repo-map` |
-| Research | `/research-discovery`, `/paper-analyze`, `/paper-compare`, `/literature-review`, `/novelty-check`, `/research-proposal`, `/research-cycle` |
-| Combined research and implementation | `/full-cycle` |
-
-For example: `/repo-map describe this project's entry points and main interfaces`.
-
-## Local configuration and version control
-
-`opencode.example.json` is the shareable template. The active `opencode.json` and `opencode.jsonc`, secrets, dependencies, runtime state, and backups are ignored by Git. Copy intentional shareable configuration changes into the example after removing credentials and machine-specific values.
-
-Agent prompts, permissions, workflows, and tools are preserved; GPT-5.6 Sol model assignments have been migrated to GPT-6 Astra. The example changes credential references and paths and disables unconfigured MCP integrations. Validation covers configuration discovery and model catalog availability; it does not demonstrate successful model requests or end-to-end external service operation.
-
-See the [OpenCode configuration documentation](https://opencode.ai/docs/config/) for global settings, environment references, and configuration precedence. No license has been selected for this repository.
+The original example code and workflows are from the v1 architecture (git tag `v1`). License: none selected.

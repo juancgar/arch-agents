@@ -1,5 +1,21 @@
 {
+  "type": "module",
+  "scripts": {
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsx scripts/build.ts",
+    "check": "tsx scripts/build.ts --check",
+    "test:hooks": "python3 -m unittest discover -s tests/python -v",
+    "test:tools": "uv run --no-project --python 3.12 --with pytest --with \"mcp>=2.3,<3\" --with httpx --with rank-bm25 --with numpy --with pypdf --with jsonschema pytest mcp/arch-tools/tests -q"
+  },
   "dependencies": {
     "@opencode-ai/plugin": "1.18.16"
-  }
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2",
+    "yaml": "^2.9.1"
+  },
+  "version": "2.0.0"
 }

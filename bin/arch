@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# aa (arch-agents) — launch the arch-agents orchestrator with a plan.
+#
+#   aa [plan] [project-dir]            interactive session (default plan from build/plans.json)
+#   aa <plan> -p "<prompt>" [--json]   one-shot, non-interactive (scripts, evals); prints the final answer
+#   aa plans                           list plans
+#   aa build                           rebuild from src/ (npm run build)
+#
+# Plans: max | daily | saver   → Claude Code on your Claude subscription
+#        local                 → Claude Code on the local llama.cpp models (experimental)
+#        offline               → OpenCode on the local llama.cpp models
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+PLANS="$ROOT/build/plans.json"
+
+die() { echo "arch: $*" >&2; exit 1; }
+json() { python3 -c "import json,sys; d=json.load(open('$PLANS')); $1"; }
+
+[ "${1:-}" = "build" ] && { cd "$ROOT" && exec npm run --silent build; }
+[ -f "$PLANS" ] || die "not built yet — run: aa build"
+
+if [ "${1:-}" = "plans" ] || [ "${1:-}" = "list" ]; then
+  json "
+for n,p in d['plans'].items():
+    tag=' (default)' if n==d['default_plan'] else ''
+    exp=' [experimental]' if p['experimental'] else ''
+    print(f\"  {n:8s} {p['harness']:9s} {p['model']:24s} {p['description']}{tag}{exp}\")"
+  exit 0
+fi
+
+PLAN="${1:-}"
+if [ -z "$PLAN" ] || [ -d "$PLAN" ] || [[ "$PLAN" == -* ]]; then PLAN="$(json "print(d['default_plan'])")"; else shift; fi
+json "sys.exit(0 if '$PLAN' in d['plans'] else 1)" || die "unknown plan '$PLAN' (try: aa plans)"
+
+PROMPT=""; JSON_OUT=0; PROJECT=""; EXTRA=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -p|--print) PROMPT="${2:?-p needs a prompt}"; shift 2 ;;
+    --json) JSON_OUT=1; shift ;;
+    --) shift; EXTRA+=("$@"); break ;;
+    *) if [ -z "$PROJECT" ] && [ -d "$1" ]; then PROJECT="$1"; else EXTRA+=("$1"); fi; shift ;;
+  esac
+done
+[ -n "$PROJECT" ] && cd "$PROJECT"
+
+get() { json "v=d['plans']['$PLAN'].get('$1'); print('' if v is None else v)"; }
+HARNESS="$(get harness)"; MODEL="$(get model)"; EFFORT="$(get effort)"; LOCAL="$(get local_models)"
+
+ensure_llm_server() {
+  if ! systemctl --user is-active --quiet llm-server 2>/dev/null; then
+    echo "arch: starting the local model server (llm-server)…" >&2
+    systemctl --user start llm-server || die "could not start llm-server"
+    sleep 3
+  fi
+}
+
+case "$HARNESS" in
+  claude)
+    command -v claude >/dev/null || die "Claude Code CLI not found (npm install -g @anthropic-ai/claude-code)"
+    PLUGIN="$(get plugin_dir)"
+    if [ "$LOCAL" = "True" ]; then
+      ensure_llm_server
+      while IFS='=' read -r k v; do export "$k=$v"; done < <(json "
+for k,v in d['plans']['$PLAN']['env'].items(): print(f'{k}={v}')")
+      export ANTHROPIC_AUTH_TOKEN="$(cat "$(get api_key_file)")"
+      unset ANTHROPIC_API_KEY
+      echo "arch: plan '$PLAN' uses local models through Claude Code — experimental (unsupported by Anthropic)." >&2
+    else
+      # make sure the subscription login is used, not a stray gateway/key from the environment
+      unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_MODEL
+    fi
+    ARGS=(--plugin-dir "$PLUGIN" --agent arch:orchestrator --model "$MODEL")
+    [ -n "$EFFORT" ] && ARGS+=(--effort "$EFFORT")
+    if [ -n "$PROMPT" ]; then
+      # non-interactive: nobody can answer permission prompts, so skip them;
+      # the arch-agents guard hooks still block dangerous commands and out-of-project writes.
+      ARGS+=(-p "$PROMPT" --dangerously-skip-permissions --output-format "$([ $JSON_OUT = 1 ] && echo json || echo text)")
+    fi
+    exec claude "${ARGS[@]}" "${EXTRA[@]}"
+    ;;
+  opencode)
+    OC="${OPENCODE_BIN:-$(command -v opencode || echo "$HOME/.opencode/bin/opencode")}"
+    [ -x "$OC" ] || die "OpenCode not found"
+    ensure_llm_server
+    OCDIR="$(json "print(d['opencode_dir'])")"
+    # use the v2 config even before ~/.config/opencode is switched over (isolated XDG config for this process)
+    if [ "$(readlink -f "$HOME/.config/opencode" 2>/dev/null)" != "$(readlink -f "$OCDIR")" ]; then
+      XDG="$HOME/.cache/arch-agents/xdg-config"; mkdir -p "$XDG"
+      ln -sfn "$OCDIR" "$XDG/opencode"
+      export XDG_CONFIG_HOME="$XDG"
+    fi
+    if [ -n "$PROMPT" ]; then
+      exec "$OC" run --agent orchestrator --auto $([ $JSON_OUT = 1 ] && echo --format json) "${EXTRA[@]}" "$PROMPT"
+    fi
+    exec "$OC" --agent orchestrator "${EXTRA[@]}"
+    ;;
+  *) die "unknown harness '$HARNESS'" ;;
+esac

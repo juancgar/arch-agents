@@ -37,19 +37,13 @@ Filename:
 
 <first-paper>_vs_<second-paper>[_and_more].md
 
-7. After successful save, send ONLY the "Reusable Findings" section to
-   `memory-manager`.
-
-Memory instructions:
-- collection: research_memory
-- source: paper-comparison
-- at most 3 durable findings
-- search before writing
-- do not store the entire comparison
+7. Keep "Reusable Findings" in the saved comparison. Automatic research-memory
+   persistence is paused during the Phase 2A shadow pilot. Do not delegate a
+   memory write or create a coding-memory candidate for it.
 
 Finish by reporting:
 - papers compared
 - report path
 - strongest overlap
 - strongest research gap
-- whether durable memories were stored
+- that automatic research-memory persistence is paused

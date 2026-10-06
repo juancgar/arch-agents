@@ -46,7 +46,9 @@ Workflow:
 Use a short descriptive filename ending:
 -proposal.md
 
-10. Send only genuinely durable final research decisions to memory-manager.
+10. Keep durable final decisions in the saved proposal and report that automatic
+    research-memory persistence is paused during the Phase 2A shadow pilot.
+    Do not delegate memory writes or create coding candidates for research.
 
 Finish with:
 - proposal path
