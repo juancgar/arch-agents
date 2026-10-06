@@ -109,6 +109,10 @@ TOOLS: list[dict[str, Any]] = [
                 "model": {"type": "string", "default": DEFAULT_CHAT_MODEL, "description": f"Router model id (default {DEFAULT_CHAT_MODEL})."},
                 "max_tokens": {"type": "integer", "minimum": 1, "maximum": 32768, "default": 2048},
                 "temperature": {"type": "number", "minimum": 0, "maximum": 2},
+                "thinking": {
+                    "type": "boolean",
+                    "description": "Thinking models only: false skips the reasoning phase (much faster for simple tasks).",
+                },
             },
             "required": ["prompt"],
             "additionalProperties": False,
@@ -239,7 +243,7 @@ async def call_tool(name: str, arguments: dict[str, Any] | None, cfg: Config | N
 
         return await local_llm(
             args["prompt"], system=args.get("system"), model=args.get("model"), max_tokens=args["max_tokens"],
-            temperature=args.get("temperature"), cfg=cfg,
+            temperature=args.get("temperature"), thinking=args.get("thinking"), cfg=cfg,
         )
     if name == "memory_search":
         from .memory import memory_search

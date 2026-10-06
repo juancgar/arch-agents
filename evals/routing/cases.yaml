@@ -339,3 +339,71 @@ cases:
     must_include: [researcher]
     must_not_include: [coder, tester]
     tags: [holdout]
+
+  # ---------------------------------------------------------------- held-out set 2 (written before the checklist
+  # rewording, the vote change and the tool trimming; never used to tune them)
+  - id: holdout2-dashboard-slow
+    prompt: "The admin dashboard got really slow this week, pages take 8 seconds. Can you sort it out?"
+    route: debug
+    difficulty: [M, L]
+    must_include: [debugger, coder]
+    order: [[debugger, coder]]
+    tags: [holdout2]
+  - id: holdout2-user-guessed-fix
+    prompt: "Login fails for some users after the update — I think it's the cookie domain, just change it to .example.com."
+    route: debug
+    difficulty: [M, L]
+    must_include: [debugger]
+    tags: [holdout2, trap]
+  - id: holdout2-memory-leak-readonly
+    prompt: "Analysis only, no changes: why does the worker's memory keep growing until it gets OOM-killed?"
+    route: [debug, explain]
+    difficulty: [M, L]
+    must_not_include: [coder, tester, planner]
+    tags: [holdout2, read-only]
+  - id: holdout2-what-does-flag-do
+    prompt: "What does the --dry-run flag in deploy.sh actually skip?"
+    route: explain
+    difficulty: S
+    must_not_include: [coder, tester, planner, architect]
+    tags: [holdout2]
+  - id: holdout2-is-this-thread-safe
+    prompt: "Is the singleton in config/loader.py thread-safe?"
+    route: code-review
+    difficulty: [S, M]
+    must_include: [reviewer]
+    must_not_include: [coder, planner]
+    tags: [holdout2]
+  - id: holdout2-graphql-or-rest
+    prompt: "For our new public API, should we go with GraphQL or stick with REST like the rest of the codebase? Recommendation only."
+    route: architecture
+    difficulty: [M, L]
+    must_include: [architect]
+    must_not_include: [coder, planner, tester]
+    tags: [holdout2, read-only]
+  - id: holdout2-add-retry
+    prompt: "Add exponential-backoff retries to the HTTP client used for the payment provider."
+    route: implement
+    difficulty: [M, L]
+    must_include: [tester, coder, reviewer]
+    order: [[tester, coder], [coder, reviewer]]
+    tags: [holdout2]
+  - id: holdout2-fix-docstring
+    prompt: "The docstring of parse_date() says it returns a string but it returns a datetime, fix the docstring."
+    route: [quick-fix, document]
+    difficulty: S
+    must_not_include: [architect, planner, debugger]
+    tags: [holdout2]
+  - id: holdout2-encrypt-pii
+    prompt: "Encrypt the phone and address columns at rest and migrate the existing rows."
+    route: implement
+    difficulty: L
+    must_include: [planner, tester, coder, reviewer]
+    tags: [holdout2]
+  - id: holdout2-survey-papers
+    prompt: "What are the main approaches to sim-to-real transfer for legged robots? Find the key papers."
+    route: research-discovery
+    difficulty: [M, L]
+    must_include: [researcher]
+    must_not_include: [coder, tester]
+    tags: [holdout2]

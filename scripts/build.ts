@@ -226,6 +226,9 @@ function buildOpencode() {
     if (isPrimary) {
       // the orchestrator may delegate only to the defined specialists
       perm.task = Object.fromEntries([["*", "deny"], ...[...agentNames].filter((n) => n !== a.meta.name).map((n) => [n, "allow"])])
+      // only our workflow skills: OpenCode also lists every skill in ~/.claude and ~/.agents, which bloats the
+      // prompt of a small local model with unrelated options (art, slides, documents…)
+      perm.skill = Object.fromEntries([["*", "deny"], ...workflows.map((w) => [w.meta.name, "allow"])])
     }
     const fm = frontmatter({
       description: a.meta.description,

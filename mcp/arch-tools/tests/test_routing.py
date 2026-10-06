@@ -210,3 +210,12 @@ def test_repeated_calls_reuse_votes_and_say_stop(monkeypatch):
     assert "repeat_call" not in first and second["repeat_call"] == 2
     assert third["instructions"].startswith("STOP calling plan_route")
     assert first["final_json"] == third["final_json"]
+
+
+@pytest.mark.parametrize("value,expected", [(None, False), ("off", False), ("on", True), ("default", None)])
+def test_route_thinking_env(monkeypatch, value, expected):
+    if value is None:
+        monkeypatch.delenv("ARCH_ROUTE_THINKING", raising=False)
+    else:
+        monkeypatch.setenv("ARCH_ROUTE_THINKING", value)
+    assert R.route_thinking() is expected

@@ -36,7 +36,7 @@ WRITERS = ("coder", "tester", "planner", "documenter")  # agents that change fil
 ROUTES: dict[str, dict[str, Any]] = {
     "quick-fix": {"floor": "S", "writes": "always", "use": "tiny, localized change whose cause and fix are obvious"},
     "explain": {"floor": "S", "writes": "never", "use": "understand code or behaviour; nothing to change or judge"},
-    "debug": {"floor": "M", "writes": "signal", "use": "something fails or misbehaves and the root cause is unknown"},
+    "debug": {"floor": "M", "writes": "signal", "use": "something fails, misbehaves or got slow and the root cause is unknown"},
     "implement": {"floor": "M", "writes": "always", "use": "substantial new behaviour"},
     "refactor": {"floor": "M", "writes": "always", "use": "change structure while behaviour stays the same"},
     "architecture-change": {"floor": "M", "writes": "signal", "use": "decide whether/which option: platforms, components, boundaries"},
@@ -79,7 +79,8 @@ SIGNALS: dict[str, str] = {
     "read_only": "The user explicitly forbids changes (analyze/explain/recommend only, read-only, don't touch anything).",
     "changes_requested": "The user asks to change code or files (fix, add, implement, refactor, migrate, write, update).",
     "judge_code": "The user asks for a verdict on existing code: is it safe, correct, vulnerable, racy, buggy, good enough?",
-    "unknown_cause": "Something fails or misbehaves (even intermittently) and the cause is not known yet.",
+    "unknown_cause": "Something fails, misbehaves or is slower than expected (even intermittently) and the cause is not "
+                     "known yet. A cause or fix the user only guesses at (\"I think it's…\", \"just bump…\") is not known.",
     "open_decision": "A choice between options/platforms/approaches is still open (should we…? X or Y? is it worth it?).",
     "security": "The work changes or judges authentication, authorization, secrets, credentials, crypto or payments.",
     "data_risk": "The work changes stored data or schemas: migrations, deleting/rewriting data, irreversible operations.",
@@ -310,8 +311,8 @@ def router_prompt() -> str:
     return (
         "You classify one request for a team of software-engineering and research agents.\n\n"
         f"Routes:\n{routes}\n\n"
-        "Precedence when several fit: a verdict on existing code → code-review; failing behaviour with unknown cause → "
-        "debug; an open choice between options → architecture-change; same behaviour, new structure → refactor; new "
+        "Precedence when several fit: a verdict on existing code → code-review; failing or slow behaviour with unknown "
+        "cause → debug; an open choice between options → architecture-change; same behaviour, new structure → refactor; new "
         "behaviour → implement; tiny obvious change → quick-fix; questions not about a specific codebase → "
         "general-technical / general.\n\n"
         f"Checklist (answer each true/false about the request):\n{checks}\n\n"
@@ -385,7 +386,8 @@ async def sample_routes(request: str, n: int, model: str, cfg: Config) -> tuple[
     from .llm import local_llm
 
     async def one() -> dict[str, Any] | None:
-        res = await local_llm(request, system=router_prompt(), model=model, max_tokens=4096, temperature=0.7, cfg=cfg)
+        res = await local_llm(request, system=router_prompt(), model=model, max_tokens=4096, temperature=0.7,
+                              thinking=route_thinking(), cfg=cfg)
         return extract_json_object(res.get("text") or "")
 
     results = await asyncio.gather(*(one() for _ in range(n)), return_exceptions=True)
@@ -398,6 +400,12 @@ async def sample_routes(request: str, n: int, model: str, cfg: Config) -> tuple[
         else:
             samples.append(r)
     return samples, errors
+
+
+def route_thinking() -> bool | None:
+    """ARCH_ROUTE_THINKING=on|off|default: whether vote samples use the model's thinking phase."""
+    v = os.environ.get("ARCH_ROUTE_THINKING", "off").strip().lower()
+    return None if v in ("", "default") else v in ("on", "true", "1", "yes")
 
 
 def default_samples() -> int:

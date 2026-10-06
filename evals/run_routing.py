@@ -101,7 +101,8 @@ def main() -> int:
     mean = sum(r["score"] for r in rows) / max(len(rows), 1)
     summary = f"\n{args.plan}: {passed}/{len(rows)} cases fully correct, mean check score {mean:.2f}, results: {out_path}"
     print(summary)
-    for label, sel in (("held-out", lambda r: "holdout" in r["tags"]), ("seen", lambda r: "holdout" not in r["tags"])):
+    for label, sel in (("held-out", lambda r: "holdout" in r["tags"]), ("held-out 2", lambda r: "holdout2" in r["tags"]),
+                       ("seen", lambda r: not {"holdout", "holdout2"} & set(r["tags"]))):
         sub = [r for r in rows if sel(r)]
         if sub:
             print(f"  {label}: {sum(r['pass'] for r in sub)}/{len(sub)} fully correct")

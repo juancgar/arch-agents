@@ -156,6 +156,25 @@ def test_local_llm_truncated_reasoning_is_not_an_answer(cfg):
     assert out["text"] == "" and out["source"] == "empty" and "max_tokens" in out.get("warning", "")
 
 
+def test_local_llm_thinking_flag_reaches_template(cfg):
+    seen = []
+
+    def handler(request: httpx.Request):
+        if request.url.path.endswith("/v1/models"):
+            return httpx.Response(200, json={"data": [{"id": "laguna-xs"}]})
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}]})
+
+    async def run(**kw):
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await local_llm("ping", model="laguna-xs", cfg=cfg, client=client, **kw)
+
+    asyncio.run(run(thinking=False))
+    asyncio.run(run())
+    assert seen[0]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert "chat_template_kwargs" not in seen[1]  # default: the model's own setting
+
+
 def test_local_llm_unknown_model_lists_choices(cfg):
     async def run():
         async with _mock_client({"content": "x"}) as client:

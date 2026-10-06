@@ -62,6 +62,7 @@ async def local_llm(
     model: str | None = None,
     max_tokens: int = 2048,
     temperature: float | None = None,
+    thinking: bool | None = None,
     cfg: Config | None = None,
     client: httpx.AsyncClient | None = None,
     timeout_s: float = REQUEST_TIMEOUT_S,
@@ -87,6 +88,8 @@ async def local_llm(
         body: dict[str, Any] = {"model": model, "messages": messages, "max_tokens": int(max_tokens), "stream": False}
         if temperature is not None:
             body["temperature"] = float(temperature)
+        if thinking is not None:  # Qwen3-style templates: skip the <think> phase (much faster for simple tasks)
+            body["chat_template_kwargs"] = {"enable_thinking": bool(thinking)}
 
         deadline = time.monotonic() + timeout_s
         started = time.monotonic()
