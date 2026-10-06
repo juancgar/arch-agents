@@ -103,7 +103,9 @@ Runs as a background service and needs nothing from you:
 
 1. **Tailscale on:** check the menu bar says Connected.
 2. **Terminal:** `ssh juanki@omen`, then `aa daily ~/workspace/me/<project>`.
-3. **Zed:** *projects: open remote* → `juanki@omen`, then run `aa` in its terminal.
+3. **Zed:** *projects: open remote* → `juanki@omen`. Then either:
+   - **terminal inside Zed** (`` Ctrl+` ``): run `aa` as usual; or
+   - **agent panel:** choose **arch-agents** (Claude, daily plan) or **arch-agents-offline** (local models) in the panel's agent menu. You get the same orchestrator, with Zed's diff view and permission prompts. These are entries in Zed's `settings.json` → `agent_servers` that run `bin/arch-acp <plan>`; add one with `"args": ["max"]` or `["saver"]` for the other plans.
 4. **Notebooks:** `http://omen:8888`.
 5. **Omen asleep?**
    - At home: `omen-wake`.

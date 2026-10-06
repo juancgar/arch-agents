@@ -203,7 +203,10 @@ function deepMerge(a: any, b: any): any {
 }
 
 function opencodePermission(agent: Doc): Record<string, unknown> {
-  let perm: Record<string, unknown> = { "*": "deny", doom_loop: "deny", external_directory: "deny" }
+  // files outside the project are off limits, except the research locations (notes, papers, reviews live
+  // there and sessions are often started from a code project) and /tmp
+  const external = Object.fromEntries([["*", "deny"], ...[pathsCfg.research_hub, pathsCfg.research_workspace, "/tmp"].flatMap((d) => [[`${d}/**`, "allow"], [`${d}/*`, "allow"]])])
+  let perm: Record<string, unknown> = { "*": "deny", doom_loop: "deny", external_directory: external }
   // later capabilities win for bash patterns (shell is broader than git_read)
   const caps = capList(agent).sort((x, y) => (x === "shell" ? 1 : y === "shell" ? -1 : 0))
   for (const c of caps) perm = deepMerge(perm, plans.capabilities[c].opencode)
