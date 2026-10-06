@@ -407,19 +407,33 @@ def default_samples() -> int:
         return 0
 
 
+# Loop guard: local models sometimes call plan_route again and again for the same request. Votes are sampled
+# once per request (per server process, i.e. per session); repeats reuse them, so a repeat costs no LLM call,
+# a changed draft (legitimate re-plan after escalation) is still re-checked, and the reply says to stop calling.
+_SEEN: dict[str, dict[str, Any]] = {}
+REPEAT_WARNING = 2
+
+
+def _request_key(request: str) -> str:
+    return re.sub(r"\s+", " ", request or "").strip().lower()
+
+
 async def plan_route(args: dict[str, Any], cfg: Config | None = None) -> dict[str, Any]:
     cfg = cfg or Config.from_env()
     draft = {k: args.get(k) for k in ("route", "difficulty", "agents", "clarify", "assumptions", "signals")}
     explicit = bool(args.get("explicit_workflow"))
     n = args.get("samples")
     n = default_samples() if n is None else int(n)
+    seen = _SEEN.setdefault(_request_key(args["request"]), {"calls": 0, "samples": None, "errors": []})
+    seen["calls"] += 1
     vote_info: dict[str, Any] = {"ballots": 1, "note": "no voting on this plan"}
     if n > 0 and not explicit and norm_route(draft.get("route")) not in DIRECT_ROUTES:
-        model = os.environ.get("ARCH_ROUTE_MODEL", "").strip() or "qwen3.6-35b"
-        samples, errors = await sample_routes(args["request"], n, model, cfg)
-        draft, vote_info = vote(draft, samples)
-        if errors:
-            vote_info["sample_errors"] = errors
+        if seen["samples"] is None:
+            model = os.environ.get("ARCH_ROUTE_MODEL", "").strip() or "qwen3.6-35b"
+            seen["samples"], seen["errors"] = await sample_routes(args["request"], n, model, cfg)
+        draft, vote_info = vote(draft, seen["samples"])
+        if seen["errors"]:
+            vote_info["sample_errors"] = seen["errors"]
     plan = check_plan(draft, explicit_workflow=explicit)
     voted = ([f"vote: route {vote_info['route_change']}"] if vote_info.get("route_change") else []) + [
         f"vote: {c}" for c in vote_info.get("signal_changes", [])]
@@ -436,4 +450,13 @@ async def plan_route(args: dict[str, Any], cfg: Config | None = None) -> dict[st
            "the user one batched question before starting. " if plan["ambiguous"] else "")
         + ("Read-only: no agent may edit files." if plan["read_only"] else "")
     ).strip()
+    if seen["calls"] > 1:
+        plan["repeat_call"] = seen["calls"]
+        plan["instructions"] = (
+            f"You already planned this request (call #{seen['calls']}); the plan is the same. Do not call plan_route "
+            "again for it: start the first agent now (in ROUTE-ONLY mode: reply with final_json and stop). "
+            + plan["instructions"]
+        )
+        if seen["calls"] > REPEAT_WARNING:
+            plan["instructions"] = "STOP calling plan_route: it will keep returning this plan. " + plan["instructions"]
     return plan

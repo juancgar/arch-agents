@@ -190,3 +190,23 @@ def test_extract_json_object_from_noisy_text():
 def test_schema_requires_full_checklist():
     with pytest.raises(ToolError):
         validate_arguments("plan_route", {"request": "x", "route": "debug", "signals": {"unknown_cause": True}})
+
+
+def test_repeated_calls_reuse_votes_and_say_stop(monkeypatch):
+    calls = {"n": 0}
+
+    async def fake(request, n, model, cfg):
+        calls["n"] += 1
+        return [{"route": "architecture-change", "signals": {"open_decision": True}}] * n, []
+
+    monkeypatch.setattr(R, "sample_routes", fake)
+    monkeypatch.setattr(R, "_SEEN", {})
+    args = {"request": "Postgres queue or Kafka?", "route": "architecture-change", "signals": sig(open_decision=True),
+            "samples": 2}
+    first = asyncio.run(R.plan_route(dict(args)))
+    second = asyncio.run(R.plan_route(dict(args)))
+    third = asyncio.run(R.plan_route(dict(args)))
+    assert calls["n"] == 1  # votes sampled once per request
+    assert "repeat_call" not in first and second["repeat_call"] == 2
+    assert third["instructions"].startswith("STOP calling plan_route")
+    assert first["final_json"] == third["final_json"]
