@@ -46,13 +46,13 @@ plans:
     experimental: true          # Claude Code against llama.cpp: works, but unsupported by Anthropic
     description: "Claude Code harness on local models (no subscription usage)"
     tiers: { brain: qwen3.6-35b, heavy: qwen3.6-35b, mid: kat-coder, light: laguna-xs }
-    roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs, math-checker: qwen3.6-35b }
+    roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs, math-checker: glm-4.7-flash }
     route_samples: 2
   offline:
     harness: opencode
     description: "OpenCode on local models: free, private, works without internet"
     tiers: { brain: qwen3.6-35b, heavy: qwen3.6-35b, mid: kat-coder, light: laguna-xs }
-    roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs, math-checker: qwen3.6-35b }
+    roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs, math-checker: glm-4.7-flash }
     route_samples: 2
 
 default_plan: daily
