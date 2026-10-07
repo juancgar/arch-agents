@@ -16,10 +16,8 @@ models:
     mirothinker:     { name: "MiroThinker 1.7 mini",       context: 65536, output: 16384, reasoning: true }
     qwen3-30b:       { name: "Qwen3 30B-A3B 2507",         context: 65536, output: 16384, reasoning: false }
     tongyi-research: { name: "Tongyi DeepResearch 30B",    context: 65536, output: 16384, reasoning: true }
-    # math / number checking candidates (bake-off: evals/run_mathcheck.py)
+    # math / number checking (math-checker role; chosen by evals/run_mathcheck.py and an agentic comparison)
     gpt-oss-20b:     { name: "gpt-oss-20b (MXFP4)",         context: 65536, output: 16384, reasoning: true }
-    deepseek-r1-8b:  { name: "DeepSeek-R1-0528 Qwen3 8B",   context: 32768, output: 16384, reasoning: true }
-    glm-4.7-flash:   { name: "GLM-4.7-Flash 30B-A3B",       context: 65536, output: 16384, reasoning: true }
 
 # tier → model per plan. `roles` overrides a specific agent.
 # route_samples: extra routing votes taken by plan_route from the brain model (self-consistency); 0 = off.
@@ -46,13 +44,13 @@ plans:
     experimental: true          # Claude Code against llama.cpp: works, but unsupported by Anthropic
     description: "Claude Code harness on local models (no subscription usage)"
     tiers: { brain: qwen3.6-35b, heavy: qwen3.6-35b, mid: kat-coder, light: laguna-xs }
-    roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs, math-checker: glm-4.7-flash }
+    roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs, math-checker: gpt-oss-20b }
     route_samples: 2
   offline:
     harness: opencode
     description: "OpenCode on local models: free, private, works without internet"
     tiers: { brain: qwen3.6-35b, heavy: qwen3.6-35b, mid: kat-coder, light: laguna-xs }
-    roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs, math-checker: glm-4.7-flash }
+    roles: { researcher: mirothinker, paper-analyst: mirothinker, tester: laguna-xs, math-checker: gpt-oss-20b }
     route_samples: 2
 
 default_plan: daily
