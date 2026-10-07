@@ -51,6 +51,7 @@ ROUTES: dict[str, dict[str, Any]] = {
     "novelty-check": {"floor": "M", "writes": "research", "use": "is an idea already done? closest prior work"},
     "research-proposal": {"floor": "L", "writes": "research", "use": "research proposal from verified gaps"},
     "research-cycle": {"floor": "L", "writes": "research", "use": "full investigation of a research question, saved as a report"},
+    "math-check": {"floor": "M", "writes": "never", "use": "verify the mathematics and numbers of a document or paper; report only"},
     "full-cycle": {"floor": "L", "writes": "always", "use": "research, then build a tested prototype"},
     "general-technical": {"floor": "S", "writes": "never", "use": "general technical question about no specific codebase"},
     "general": {"floor": "S", "writes": "never", "use": "non-technical question"},
@@ -59,6 +60,7 @@ CHANGE_ROUTES = ("quick-fix", "implement", "refactor", "document", "repo-map", "
 DIRECT_ROUTES = ("general-technical", "general")
 
 ROUTE_ALIASES = {
+    "mathcheck": "math-check", "math-verify": "math-check", "verify-math": "math-check", "check-math": "math-check",
     "architecture": "architecture-change", "architecture-environment": "architecture-change", "arch": "architecture-change",
     "quickfix": "quick-fix", "fix": "quick-fix", "explanation": "explain", "explain-code": "explain",
     "debugging": "debug", "implementation": "implement", "feature": "implement", "review": "code-review",
@@ -213,6 +215,7 @@ def core_agents(route: str, size: str, s: dict[str, bool]) -> list[str]:
         "paper-compare": ["paper-comparator", "claim-checker", "documenter"],
         "literature-review": ["literature-reviewer", "claim-checker", "documenter"],
         "novelty-check": ["novelty-checker", "claim-checker"],
+        "math-check": ["math-checker"],
         "research-proposal": ["proposal-designer", "novelty-checker", "reviewer", "claim-checker", "documenter"],
         "research-cycle": ["researcher", "synthesizer", "novelty-checker", "claim-checker", "documenter"],
     }
@@ -229,7 +232,7 @@ _OPTIONAL_BY_ROUTE = {
     "verify": {"browser-agent"}, "debug": {"browser-agent"}, "implement": {"browser-agent", "documenter"},
     "refactor": {"documenter"}, "quick-fix": {"browser-agent"}, "architecture-change": {"documenter"},
     "code-review": {"explore"}, "novelty-check": {"researcher"}, "research-proposal": {"researcher", "math-checker"},
-    "paper-compare": {"math-checker"}, "literature-review": {"math-checker"},
+    "paper-compare": {"math-checker"}, "literature-review": {"math-checker"}, "math-check": {"claim-checker"},
     "research-discovery": {"researcher"}, "full-cycle": {"browser-agent"},
 }
 

@@ -89,6 +89,7 @@ capabilities:
         "python -m pytest*": allow
         "pytest*": allow
         "uv run*": allow
+        "arch-calc*": allow
         "npm test*": allow
         "npm run *": allow
         "npx tsc*": allow

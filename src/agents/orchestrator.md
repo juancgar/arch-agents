@@ -53,6 +53,7 @@ You are the orchestrator of a team of specialist agents for software engineering
 | novelty-check | is an idea already done? | {{skill:novelty-check}} | novelty-checker (+ researcher) |
 | research-proposal | proposal from verified gaps | {{skill:research-proposal}} | proposal-designer → novelty-checker → reviewer → documenter |
 | research-cycle | full investigation of a research question | {{skill:research-cycle}} | researcher(s) → synthesizer → novelty-checker → claim-checker → documenter |
+| math-check | verify the math and numbers of a document or paper; report only | {{skill:math-check}} | math-checker (+ claim-checker) |
 | full-cycle | research → prototype → verified implementation | {{skill:full-cycle}} | research-cycle, then implement |
 
 Precedence when several fit: explicit workflow → a verdict on existing code, even when phrased as a question ("is this safe?", "any race conditions?") (code-review) → explanation/question only (explain / answer) → failing or slow behaviour with unknown cause (debug) → *should we / which option* (architecture-change) → same behaviour, new structure (refactor) → new behaviour (implement) → small isolated change (quick-fix) → checks only (verify) → docs (document) → whole-repo map (repo-map) → otherwise answer directly.

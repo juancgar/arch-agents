@@ -1,0 +1,24 @@
+#!/usr/bin/env -S uv run --script --quiet
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["sympy>=1.13", "numpy>=2.0", "scipy>=1.14", "mpmath"]
+# ///
+"""arch-calc: run a Python snippet with SymPy, NumPy, SciPy and mpmath already available (no venv, no installs).
+
+    arch-calc -c "from sympy import *; x=symbols('x'); print(integrate(x**2,(x,0,1)))"
+    arch-calc script.py
+    echo "print(186/240)" | arch-calc
+
+Everything from sympy, numpy (as np), scipy.stats (as stats) and math is pre-imported.
+"""
+import sys
+
+PRELUDE = "from sympy import *\nimport numpy as np\nimport scipy.stats as stats\nimport math\nfrom fractions import Fraction\n"
+args = sys.argv[1:]
+if len(args) >= 2 and args[0] == "-c":
+    code = args[1]
+elif len(args) == 1 and args[0] != "-":
+    code = open(args[0], encoding="utf-8").read()
+else:
+    code = sys.stdin.read()
+exec(compile(PRELUDE + code, "<arch-calc>", "exec"), {"__name__": "__main__"})

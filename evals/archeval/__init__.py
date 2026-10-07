@@ -38,6 +38,7 @@ ROUTES: tuple[str, ...] = (
     "novelty-check",
     "research-proposal",
     "research-cycle",
+    "math-check",
     "full-cycle",
 )
 
