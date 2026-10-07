@@ -27,7 +27,7 @@ from .net import ToolError
 AGENTS = (
     "architect", "planner", "reviewer", "synthesizer", "novelty-checker", "proposal-designer", "paper-comparator",
     "literature-reviewer", "coder", "tester", "debugger", "researcher", "paper-analyst", "claim-checker", "explore",
-    "documenter", "browser-agent",
+    "documenter", "browser-agent", "math-checker",
 )
 WRITERS = ("coder", "tester", "planner", "documenter")  # agents that change files or only make sense before changes
 
@@ -209,7 +209,7 @@ def core_agents(route: str, size: str, s: dict[str, bool]) -> list[str]:
         return ["explore", "documenter"]
     research = {
         "research-discovery": ["researcher", "claim-checker"],
-        "paper-analyze": ["paper-analyst", "claim-checker", "documenter"],
+        "paper-analyze": ["paper-analyst", "claim-checker", "math-checker", "documenter"],
         "paper-compare": ["paper-comparator", "claim-checker", "documenter"],
         "literature-review": ["literature-reviewer", "claim-checker", "documenter"],
         "novelty-check": ["novelty-checker", "claim-checker"],
@@ -228,8 +228,9 @@ def core_agents(route: str, size: str, s: dict[str, bool]) -> list[str]:
 _OPTIONAL_BY_ROUTE = {
     "verify": {"browser-agent"}, "debug": {"browser-agent"}, "implement": {"browser-agent", "documenter"},
     "refactor": {"documenter"}, "quick-fix": {"browser-agent"}, "architecture-change": {"documenter"},
-    "code-review": {"explore"}, "novelty-check": {"researcher"}, "research-proposal": {"researcher"},
-    "literature-review": set(), "research-discovery": {"researcher"}, "full-cycle": {"browser-agent"},
+    "code-review": {"explore"}, "novelty-check": {"researcher"}, "research-proposal": {"researcher", "math-checker"},
+    "paper-compare": {"math-checker"}, "literature-review": {"math-checker"},
+    "research-discovery": {"researcher"}, "full-cycle": {"browser-agent"},
 }
 
 

@@ -60,7 +60,7 @@ In Claude Code type `/arch:<name> …`; in OpenCode, `/<name> …`.
 | Research | What it does |
 |---|---|
 | `research-discovery` | Find papers: library first, then arXiv, OpenReview and the web |
-| `paper-analyze` | Deep read of one paper → a saved note |
+| `paper-analyze` | Deep read of one paper → a saved note; its math and numbers are recomputed |
 | `paper-compare` | Compare 2–5 analysed papers |
 | `literature-review` | Thematic review from your analysed papers |
 | `novelty-check` | Closest prior work per facet: retain / narrow / abandon |

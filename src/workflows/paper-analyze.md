@@ -9,6 +9,7 @@ argument-hint: "<arXiv ID or local PDF path>"
 1. {{agent:paper-analyst}} reads the actual paper (downloaded arXiv full text or the local PDF) — never only the title or abstract — and returns the structured analysis with section/page locations for key claims and numbers.
 2. Check the analysis for missing major sections or unsupported claims. If critical evidence is missing, ask the paper-analyst for **one** focused follow-up rather than restarting.
 3. **G5 Grounding:** {{agent:claim-checker}} checks the analysis against the paper, prioritising the method description, every quantitative result and the novelty-relevant claims. Fix or remove what fails.
+   In parallel, {{agent:math-checker}} verifies the paper's own mathematics and numbers (key equations, reported results, statistics, units). Record MISMATCH items in the note under "Verification notes": they are findings about the paper, not reasons to drop the analysis.
 4. {{agent:documenter}} saves the note with the paper-analysis metadata block:
    ```
    ---

@@ -84,7 +84,7 @@ def test_read_only_implement_falls_back_to_explain():
 
 def test_research_routes_keep_documenter():
     p = plan("paper-analyze", ["paper-analyst"])
-    assert p["agents"] == ["paper-analyst", "claim-checker", "documenter"] and not p["read_only"]
+    assert p["agents"] == ["paper-analyst", "claim-checker", "math-checker", "documenter"] and not p["read_only"]
 
 
 # ---------------- difficulty checklist

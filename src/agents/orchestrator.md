@@ -47,7 +47,7 @@ You are the orchestrator of a team of specialist agents for software engineering
 | document | persistent docs that must match the code | {{skill:document}} | explore → documenter (→ reviewer for M/L) |
 | repo-map | map/refresh the whole repository structure | {{skill:repo-map}} | explore → documenter |
 | research-discovery | find papers on a topic | {{skill:research-discovery}} | researcher(s) → claim-checker |
-| paper-analyze | deep read of one paper | {{skill:paper-analyze}} | paper-analyst → claim-checker → documenter |
+| paper-analyze | deep read of one paper | {{skill:paper-analyze}} | paper-analyst → claim-checker + math-checker → documenter |
 | paper-compare | compare 2–5 analysed papers | {{skill:paper-compare}} | paper-comparator → documenter |
 | literature-review | thematic review of analysed papers | {{skill:literature-review}} | literature-reviewer → claim-checker → documenter |
 | novelty-check | is an idea already done? | {{skill:novelty-check}} | novelty-checker (+ researcher) |
