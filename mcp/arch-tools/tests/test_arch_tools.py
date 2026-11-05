@@ -16,7 +16,7 @@ from arch_tools import citations as C  # noqa: E402
 from arch_tools.chunking import chunk_spans  # noqa: E402
 from arch_tools.config import Config  # noqa: E402
 from arch_tools.llm import local_llm, strip_think  # noqa: E402
-from arch_tools.memory import build_search_argv  # noqa: E402
+from arch_tools.memory import build_remember_argv, build_search_argv  # noqa: E402
 from arch_tools.search import rrf_fuse  # noqa: E402
 
 
@@ -210,3 +210,33 @@ def test_memory_argv_rejects_bad_values(kwargs):
 def test_memory_argv_rejects_empty_query():
     with pytest.raises(Exception):
         build_search_argv("/bin/memory", "   ", "project_memory")
+
+
+# ---------------- memory_remember (opt-in) ----------------
+
+def test_remember_argv_maps_fields_and_guards_text():
+    argv = build_remember_argv("/bin/memory", "-x uses port 8765", "project_memory", project="kmd",
+                               memory_type="environment_constraint", tags=["ports"])
+    assert argv[:3] == ["/bin/memory", "remember", "--json"]
+    joined = " ".join(argv)
+    assert "--project=kmd" in joined and "--memory-type=environment_constraint" in joined and "--tags=ports" in joined
+    assert argv.index("--") < argv.index("-x uses port 8765")
+
+
+@pytest.mark.parametrize("text", ["key is sk-ant-" + "a" * 30, "token ghp_" + "b" * 36, "-----BEGIN RSA PRIVATE KEY-----"])
+def test_remember_rejects_credentials(text):
+    with pytest.raises(Exception):
+        build_remember_argv("/bin/memory", text, "project_memory", project="p")
+
+
+def test_remember_tool_is_opt_in(monkeypatch):
+    import importlib
+
+    import arch_tools.tools as T
+
+    monkeypatch.delenv("ARCH_MEMORY_WRITE", raising=False)
+    assert "memory_remember" not in importlib.reload(T).TOOLS_BY_NAME
+    monkeypatch.setenv("ARCH_MEMORY_WRITE", "1")
+    assert "memory_remember" in importlib.reload(T).TOOLS_BY_NAME
+    monkeypatch.delenv("ARCH_MEMORY_WRITE")
+    importlib.reload(T)

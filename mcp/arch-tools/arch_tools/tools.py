@@ -9,7 +9,7 @@ import copy
 from typing import Any
 
 from .config import DEFAULT_CHAT_MODEL, Config
-from .memory import COLLECTIONS, MEMORY_TYPES, STATUSES
+from .memory import COLLECTIONS, MEMORY_TYPES, STATUSES, write_enabled
 from .net import ToolError
 from .routing import ROUTES, SIGNALS
 
@@ -195,6 +195,42 @@ TOOLS.append(
     }
 )
 
+if write_enabled():  # opt-in: arch-agents plans stay read-only unless ARCH_MEMORY_WRITE=1
+    INSTRUCTIONS += (
+        " memory_remember: store one durable, verified fact (decision, constraint, recipe, bug pattern) when the "
+        "user asks to remember something or a non-obvious fact was confirmed; search first to avoid duplicates; "
+        "never store secrets, raw logs or unfinished guesses."
+    )
+    TOOLS.append(
+        {
+            "name": "memory_remember",
+            "description": (
+                "Store one memory in the local semantic memory service (runs `memory remember --json`). Write one "
+                "self-contained claim per call. Exact duplicates are skipped and return the existing id. Text that "
+                "looks like a credential is rejected."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "minLength": 1, "maxLength": 4000},
+                    "collection": {"type": "string", "enum": list(COLLECTIONS), "default": "project_memory"},
+                    "project": {"type": "string", "description": "Canonical project id, usually the repository name."},
+                    "memory_type": {"type": "string", "enum": list(MEMORY_TYPES)},
+                    "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 10},
+                    "scope_paths": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Repository paths this memory applies to.",
+                    },
+                    "source_path": {"type": "string", "description": "File the fact comes from, if any."},
+                },
+                "required": ["text", "project"],
+                "additionalProperties": False,
+            },
+            "annotations": {"title": "Remember", "read_only_hint": False, "destructive_hint": False, "open_world_hint": False},
+        }
+    )
+
 TOOLS_BY_NAME = {tool["name"]: tool for tool in TOOLS}
 
 
@@ -252,6 +288,13 @@ async def call_tool(name: str, arguments: dict[str, Any] | None, cfg: Config | N
             args["query"], args["collection"], project=args.get("project"), memory_types=args.get("memory_types"),
             status=args.get("status"), limit=args.get("limit"), tags=args.get("tags"),
             scope_paths=args.get("scope_paths"), cfg=cfg,
+        )
+    if name == "memory_remember":
+        from .memory import memory_remember
+
+        return await memory_remember(
+            args["text"], args["collection"], project=args.get("project"), memory_type=args.get("memory_type"),
+            tags=args.get("tags"), scope_paths=args.get("scope_paths"), source_path=args.get("source_path"), cfg=cfg,
         )
     if name == "plan_route":
         from .routing import plan_route

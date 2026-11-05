@@ -1,6 +1,7 @@
 """memory_search: read-only wrapper around `memory search --json` (the Phase 2A memory CLI).
 
-Only the `search` subcommand is ever invoked. remember/forget/propose/decide are deliberately not exposed.
+`search` is always available. `remember` is exposed only when ARCH_MEMORY_WRITE=1 (opt-in, e.g. for plain
+Claude Code sessions); forget/propose/decide are deliberately not exposed.
 """
 
 from __future__ import annotations
@@ -8,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -79,6 +81,59 @@ def build_search_argv(
     return argv
 
 
+def write_enabled() -> bool:
+    return os.environ.get("ARCH_MEMORY_WRITE") == "1"
+
+
+# Common credential formats; memory text is embedded and searchable, so these must never be stored.
+SECRET_RE = re.compile(
+    r"(sk-[A-Za-z0-9_-]{20,}|sk-ant-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}"
+    r"|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----"
+    r"|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})"
+)
+
+
+def build_remember_argv(
+    cli: Path | str,
+    text: str,
+    collection: str,
+    *,
+    project: str | None = None,
+    memory_type: str | None = None,
+    tags: Sequence[str] | None = None,
+    scope_paths: Sequence[str] | None = None,
+    source_path: str | None = None,
+    source: str | None = "claude-code",
+) -> list[str]:
+    """argv for `memory remember`, with the same flag/positional guards as build_search_argv."""
+    text = (text or "").strip()
+    if not text:
+        raise ToolError("text must not be empty")
+    if SECRET_RE.search(text):
+        raise ToolError("text looks like it contains a credential; remove it before storing")
+    if collection not in COLLECTIONS:
+        raise ToolError(f"collection must be one of {', '.join(COLLECTIONS)}")
+    if memory_type is not None and memory_type not in MEMORY_TYPES:
+        raise ToolError(f"memory_type must be one of {', '.join(MEMORY_TYPES)}")
+    argv = [str(cli), "remember", "--json", "--status=active"]
+    if project and project.strip():
+        argv.append(f"--project={project.strip()}")
+    if memory_type:
+        argv.append(f"--memory-type={memory_type}")
+    tag_csv = _csv(tags, "tags")
+    if tag_csv:
+        argv.append(f"--tags={tag_csv}")
+    scope_csv = _csv(scope_paths, "scope_paths")
+    if scope_csv:
+        argv.append(f"--scope-paths={scope_csv}")
+    if source_path and source_path.strip():
+        argv.append(f"--source-path={source_path.strip()}")
+    if source:
+        argv.append(f"--source={source}")
+    argv += ["--", collection, text]
+    return argv
+
+
 async def run_cli(argv: list[str], timeout_s: float = TIMEOUT_S) -> tuple[int, str, str]:
     """Run without a shell; kill the process group-less child on timeout. Returns (code, stdout, stderr)."""
     env = {k: v for k, v in os.environ.items() if k not in ("VIRTUAL_ENV", "PYTHONPATH", "PYTHONHOME")}
@@ -107,7 +162,7 @@ async def run_cli(argv: list[str], timeout_s: float = TIMEOUT_S) -> tuple[int, s
         except (ProcessLookupError, PermissionError):
             proc.kill()
         await proc.wait()
-        raise ServiceUnavailable(f"memory search timed out after {timeout_s:.0f}s") from None
+        raise ServiceUnavailable(f"memory {argv[1]} timed out after {timeout_s:.0f}s") from None
     return proc.returncode or 0, stdout.decode("utf-8", "replace"), stderr.decode("utf-8", "replace")
 
 
@@ -147,12 +202,42 @@ async def memory_search(
     )
     code, stdout, stderr = await run_cli(argv, timeout_s)
     if code != 0:
-        detail: Any = stderr.strip()[-800:]
-        for line in reversed(stderr.strip().splitlines()):
-            try:
-                detail = json.loads(line)
-                break
-            except ValueError:
-                continue
-        raise ServiceError(f"memory search failed (exit {code})", data={"cli_error": detail})
+        raise ServiceError(f"memory search failed (exit {code})", data={"cli_error": _cli_error(stderr)})
     return _parse_json_output(stdout)
+
+
+def _cli_error(stderr: str) -> Any:
+    for line in reversed(stderr.strip().splitlines()):
+        try:
+            return json.loads(line)
+        except ValueError:
+            continue
+    return stderr.strip()[-800:]
+
+
+async def memory_remember(
+    text: str,
+    collection: str,
+    *,
+    project: str | None = None,
+    memory_type: str | None = None,
+    tags: Sequence[str] | None = None,
+    scope_paths: Sequence[str] | None = None,
+    source_path: str | None = None,
+    cfg: Config | None = None,
+    timeout_s: float = TIMEOUT_S,
+) -> Any:
+    if not write_enabled():
+        raise ToolError("memory writes are disabled (set ARCH_MEMORY_WRITE=1)")
+    cfg = cfg or Config.from_env()
+    argv = build_remember_argv(
+        cfg.memory_cli, text, collection, project=project, memory_type=memory_type, tags=tags,
+        scope_paths=scope_paths, source_path=source_path,
+    )
+    code, stdout, stderr = await run_cli(argv, timeout_s)
+    if code != 0:
+        raise ServiceError(f"memory remember failed (exit {code})", data={"cli_error": _cli_error(stderr)})
+    result = _parse_json_output(stdout)
+    if "Duplicate skipped" in stderr:
+        result["duplicate"] = True
+    return result
