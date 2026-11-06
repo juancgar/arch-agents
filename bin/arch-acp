@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# arch-acp — arch-agents as an ACP agent server, for Zed's agent panel (and any other ACP client).
+#
+#   arch-acp [plan]        plan: max | daily | saver | local | offline (default: build/plans.json default_plan)
+#
+# Claude plans run the official Claude Code ACP adapter with the Claude CLI wrapped so that it loads the
+# arch-agents plugin and starts in the orchestrator (see bin/claude-plugin-exec.js). The offline plan runs
+# `opencode acp` with the v2 config. Zed settings example (settings.json → "agent_servers"):
+#
+#   "arch-agents": { "type": "custom", "command": "/home/you/workspace/me/arch-agents-v2/bin/arch-acp", "args": ["daily"] }
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+PLANS="$ROOT/build/plans.json"
+die() { echo "arch-acp: $*" >&2; exit 1; }
+json() { python3 -c "import json,sys; d=json.load(open('$PLANS')); $1"; }
+[ -f "$PLANS" ] || die "not built yet — run: aa build"
+
+PLAN="${1:-$(json "print(d['default_plan'])")}"
+json "sys.exit(0 if '$PLAN' in d['plans'] else 1)" || die "unknown plan '$PLAN' (try: aa plans)"
+get() { json "v=d['plans']['$PLAN'].get('$1'); print('' if v is None else v)"; }
+HARNESS="$(get harness)"; LOCAL="$(get local_models)"
+
+ensure_llm_server() {
+  if ! systemctl --user is-active --quiet llm-server 2>/dev/null; then
+    systemctl --user start llm-server || die "could not start llm-server"
+    sleep 3
+  fi
+}
+
+case "$HARNESS" in
+  claude)
+    command -v claude >/dev/null || die "Claude Code CLI not found"
+    export ARCH_PLUGIN_DIR="$(get plugin_dir)"
+    export ARCH_CLAUDE_BIN="$(command -v claude)"
+    export CLAUDE_CODE_EXECUTABLE="$ROOT/bin/claude-plugin-exec.js"
+    if [ "$LOCAL" = "True" ]; then
+      ensure_llm_server
+      while IFS='=' read -r k v; do export "$k=$v"; done < <(json "
+for k,v in d['plans']['$PLAN']['env'].items(): print(f'{k}={v}')")
+      export ANTHROPIC_AUTH_TOKEN="$(cat "$(get api_key_file)")"
+      unset ANTHROPIC_API_KEY
+    else
+      unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_MODEL
+    fi
+    # the adapter Zed already installed, else fetch it with npx
+    ZED_ADAPTER="$HOME/.local/share/zed/external_agents/registry/npx/claude-acp/node_modules/.bin/claude-agent-acp"
+    if [ -x "$ZED_ADAPTER" ]; then exec "$ZED_ADAPTER"; fi
+    exec npx -y @agentclientprotocol/claude-agent-acp
+    ;;
+  opencode)
+    OC="${OPENCODE_BIN:-$(command -v opencode || echo "$HOME/.opencode/bin/opencode")}"
+    [ -x "$OC" ] || die "OpenCode not found"
+    ensure_llm_server
+    OCDIR="$(json "print(d['opencode_dir'])")"
+    if [ "$(readlink -f "$HOME/.config/opencode" 2>/dev/null)" != "$(readlink -f "$OCDIR")" ]; then
+      XDG="$HOME/.cache/arch-agents/xdg-config"; mkdir -p "$XDG"
+      ln -sfn "$OCDIR" "$XDG/opencode"
+      export XDG_CONFIG_HOME="$XDG"
+    fi
+    exec "$OC" acp
+    ;;
+  *) die "unknown harness '$HARNESS'" ;;
+esac

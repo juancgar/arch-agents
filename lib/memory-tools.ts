@@ -15,6 +15,9 @@ export const runProcess: Runner = (argv, options = {}) => new Promise((resolve, 
   const grouped = process.platform !== "win32"
   const child = spawn(argv[0], argv.slice(1), {
     cwd: options.cwd, stdio: ["pipe", "pipe", "pipe"], shell: false, detached: grouped,
+    // The memory service loads its embedding model on the GPU when one is visible, which runs out of memory
+    // while a local LLM (llm-server) holds the VRAM. Run it on the CPU unless MEMORY_USE_GPU=1.
+    env: process.env.MEMORY_USE_GPU === "1" ? process.env : { ...process.env, CUDA_VISIBLE_DEVICES: "" },
   })
   let stdout = "", stderr = "", settled = false
   const finish = (error?: Error, output?: string) => {

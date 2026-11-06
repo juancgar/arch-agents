@@ -1,0 +1,58 @@
+# Math/number checking bake-off: paper-like excerpts with planted errors.
+# planted[].keywords: a finding counts as a catch if its text mentions any of them (case-insensitive).
+# Cases with planted: [] are clean controls: any finding there is a false alarm.
+cases:
+  - id: percent-from-counts
+    text: "Of the 240 participants recruited, 186 completed all three sessions (72.5%), and their data are used in the analysis below."
+    planted:
+      - {kind: numeric, description: "186/240 = 77.5%, not 72.5%", keywords: ["77.5", "186/240", "72.5"]}
+  - id: table-mean
+    text: "Table 2 reports per-seed accuracy on the held-out split: 81.2, 79.8, 84.1 and 80.9. The mean accuracy of our method is therefore 82.0, exceeding the previous best of 81.7."
+    planted:
+      - {kind: numeric, description: "mean of the four values is 81.5, not 82.0 (and then below 81.7)", keywords: ["81.5", "81.50"]}
+  - id: relative-improvement
+    text: "The baseline reaches an F1 of 0.642 while our model reaches 0.701, a relative improvement of 12.4%."
+    planted:
+      - {kind: numeric, description: "(0.701-0.642)/0.642 = 9.2%, not 12.4%", keywords: ["9.2", "9.19", "9.1"]}
+  - id: binomial-square
+    text: "Expanding the regulariser, we use (a + b)^2 = a^2 + b^2 + ab, so the cross term scales linearly with the product of the two norms."
+    planted:
+      - {kind: symbolic, description: "cross term is 2ab", keywords: ["2ab", "2 a b", "2·a·b", "cross term", "coefficient 2", "factor of 2"]}
+  - id: product-rule
+    text: "Differentiating the gating function g(x) = x^3 e^x gives g'(x) = 3x^2 e^x, which is positive for all x > 0."
+    planted:
+      - {kind: symbolic, description: "product rule: g' = 3x^2 e^x + x^3 e^x = x^2 e^x (3 + x)", keywords: ["x^3 e^x", "x³e", "product rule", "x^2 e^x (3 + x)", "(3 + x)", "(x + 3)", "x^3 * e^x", "x**3"]}
+  - id: clean-variance-and-counts
+    text: "We standardise features using Var(X) = E[X^2] - (E[X])^2 estimated on the training split. 48 of the 60 evaluation prompts (80%) were answered within the time budget."
+    planted: []
+  - id: probability-range
+    text: "Under the updated prior, the posterior probability that the adapter belongs to the current user was 1.12, compared with 0.87 for the nearest competing identity."
+    planted:
+      - {kind: range, description: "a probability cannot exceed 1", keywords: ["1.12", "exceed", "greater than 1", "above 1", "> 1", "[0, 1]", "[0,1]"]}
+  - id: unit-arithmetic
+    text: "Decoding costs 40 ms per token on the embedded GPU, so generating a 1,000-token response takes about 4 seconds, well within the interaction budget."
+    planted:
+      - {kind: units, description: "40 ms × 1000 = 40 s, not 4 s", keywords: ["40 s", "40 seconds", "40s", "40,000 ms", "40000 ms"]}
+  - id: speedup
+    text: "With adapter caching, end-to-end runtime dropped from 36.0 s to 9.0 s per session, a 3x speedup."
+    planted:
+      - {kind: numeric, description: "36/9 = 4x", keywords: ["4x", "4×", "four", "4.0"]}
+  - id: t-test-consistency
+    text: "Participants preferred the adaptive robot (M = 5.1, SD = 1.2) over the static one (M = 4.8, SD = 1.3), t(58) = 1.02, p < 0.001."
+    planted:
+      - {kind: statistics, description: "t(58) = 1.02 corresponds to p ≈ 0.31, not p < 0.001", keywords: ["0.3", "p ≈", "p-value", "p value", "1.02", "not significant", "inconsistent"]}
+  - id: percentages-sum
+    text: "The interaction corpus is split by intent: 45% requests, 30% small talk, 20% corrections and 10% other."
+    planted:
+      - {kind: consistency, description: "shares sum to 105%", keywords: ["105", "sum", "add up", "total"]}
+  - id: integral
+    text: "The expected squared error under a uniform input on [0, 1] is ∫_0^1 x^2 dx = 1/2, which we use as the normalising constant."
+    planted:
+      - {kind: symbolic, description: "∫_0^1 x^2 dx = 1/3", keywords: ["1/3", "0.333", "one third"]}
+  - id: clean-geometric-and-percent
+    text: "Discounted returns use the geometric series sum_{k>=0} r^k = 1/(1 - r) for |r| < 1. In the stress test, 125 of 500 queries (25%) exceeded the latency budget."
+    planted: []
+  - id: log-identity
+    text: "Because log(ab) = log(a) · log(b), the joint score decomposes into the product of the per-feature log-scores, which we compute independently."
+    planted:
+      - {kind: symbolic, description: "log(ab) = log a + log b", keywords: ["log(a) + log(b)", "log a + log b", "sum of", "additive", "+ log"]}
