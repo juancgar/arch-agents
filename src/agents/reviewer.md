@@ -4,7 +4,7 @@ description: Independent, evidence-based reviewer of code changes, implementatio
 tier: heavy
 effort: high
 capabilities: [read, git_read, ast_grep, github_read, arch_tools]
-steps: 40
+steps: 60
 color: red
 ---
 

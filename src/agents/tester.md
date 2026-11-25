@@ -4,7 +4,7 @@ description: Independent verifier for code. Writes reproduction and behaviour te
 tier: mid
 effort: medium
 capabilities: [read, edit, shell, browser, arch_tools]
-steps: 50
+steps: 70
 color: yellow
 ---
 

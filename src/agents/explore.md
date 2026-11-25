@@ -4,7 +4,7 @@ description: Fast read-only codebase explorer. Finds files, symbols, implementat
 tier: light
 effort: low
 capabilities: [read, git_read, ast_grep, github_read]
-steps: 25
+steps: 35
 color: cyan
 ---
 

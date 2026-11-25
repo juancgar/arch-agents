@@ -4,7 +4,7 @@ description: Turns an agreed goal or architecture decision into a concrete imple
 tier: heavy
 effort: medium
 capabilities: [read, git_read, ast_grep, arch_tools, memory_read]
-steps: 40
+steps: 55
 color: cyan
 ---
 

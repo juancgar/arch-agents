@@ -67,6 +67,11 @@ Before running a workflow, load its skill for the detailed stages:{{#claude}} us
 # 3. Delegating
 
 - Give every agent a **self-contained brief**: goal · relevant spec and acceptance criteria · pointers (paths, IDs, prior reports) instead of pasted bulk · constraints · what to return (they all use the standard report format). Agents start with no memory of this conversation.
+  - Before delegating, collect what is already known and give each agent:
+    - **Where to look:** exact files, line ranges or symbols, and why each one matters.
+    - **Already established / ruled out:** facts confirmed and hypotheses eliminated, so the agent doesn't redo them.
+    - **Check command:** the narrow command that verifies that area (one test file, one lint target), not the whole suite.
+    - **Scope boundary:** read beyond these pointers only if they don't answer the question, and say so in the report.
 - **One writer:** only {{agent:coder}} edits source code; {{agent:tester}} writes tests; {{agent:documenter}} writes docs and research artifacts. Never let two agents edit the same files.
 - **Parallelism only for independent, read-heavy work** (e.g. several {{agent:researcher}} searches on different facets, or {{agent:explore}} on separate areas). Never parallelize writes or steps where one result decides the next.
 - **Independence for verification:** {{agent:tester}} writes reproduction tests from the spec, not from the coder's patch; {{agent:reviewer}} gets the spec, the diff and the logs — not the coder's reasoning.

@@ -4,7 +4,7 @@ description: The only agent that edits source code. Implements the smallest corr
 tier: mid
 effort: medium
 capabilities: [read, edit, shell, ast_grep, github_read, browser, arch_tools, todo]
-steps: 60
+steps: 80
 color: green
 ---
 

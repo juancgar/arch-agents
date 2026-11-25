@@ -21,3 +21,7 @@ End with this report (it is what the orchestrator sees; keep it under ~1,500 tok
 ## Confidence
 <high | medium | low> — <one line on why>
 ```
+
+## Turn budget
+
+Keep track of the turns you have left. When about 5 remain, or the work can't be finished, stop and deliver the report anyway: what's done, what's left, the evidence so far, marked **PARTIAL** at the top of `## Result`. Always deliver it through SubagentHandback; never end on a tool call.
