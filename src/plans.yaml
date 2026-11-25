@@ -5,10 +5,10 @@
 
 models:
   claude:
-    fable:  claude-fable-5-1
+    fable:  claude-fable-5-2
     opus:   claude-opus-5-5
     sonnet: claude-sonnet-5-5
-    haiku:  claude-haiku-4-5
+    haiku:  claude-haiku-5-5
   local:                      # names served by the llama.cpp router (llm-server)
     qwen3.6-35b:     { name: "Qwen3.6 35B-A3B (thinking)", context: 65536, output: 16384, reasoning: true }
     kat-coder:       { name: "KAT-Coder V2.5 35B-A3B",     context: 65536, output: 16384, reasoning: false }
